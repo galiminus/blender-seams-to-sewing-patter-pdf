@@ -11,8 +11,10 @@ bl_info = {
 if "bpy" in locals():
     import importlib
     importlib.reload(op_seams_to_sewingpattern)
+    importlib.reload(op_export_sewingpattern)
 else:
     from . import op_seams_to_sewingpattern
+    from . import op_export_sewingpattern
 
 import bpy
 from bpy.types import Menu
@@ -34,13 +36,14 @@ class VIEW3D_MT_object_seams_to_sewing_pattern_menu(Menu):
         layout = self.layout
         layout.operator("object.seams_to_sewingpattern", text="Seams to Sewing Pattern", icon="OUTLINER_DATA_SURFACE")
         layout.separator()
-        #layout.operator("mesh.primitive_monkey_add", text="Export Sewing Pattern (.svg)", icon="EXPORT")
+        layout.operator("object.export_sewingpattern", text="Export Sewing Pattern (.svg)", icon="EXPORT")
 
 
 # Register
 classes = [
     VIEW3D_MT_object_seams_to_sewing_pattern_menu,
-    op_seams_to_sewingpattern.Seams_To_SewingPattern
+    op_seams_to_sewingpattern.Seams_To_SewingPattern,
+    op_export_sewingpattern.Export_Sewingpattern
     ]
 
 def register():
