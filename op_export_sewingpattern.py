@@ -84,7 +84,8 @@ class Export_Sewingpattern(bpy.types.Operator):
         filepath = self.filepath
         filepath = bpy.path.ensure_ext(filepath, "." + self.file_format.lower())
         
-        #todo: data
+        if (self.alignment_markers == 'AUTO'):
+            self.auto_detect_markers()
 
         self.export(filepath)
 
@@ -96,7 +97,7 @@ class Export_Sewingpattern(bpy.types.Operator):
     def export(self, filepath):
         svgstring = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + str(self.size[0]) + ' ' + str(self.size[1]) +'">'
         #svgstring += '<!-- Exported using the Seams to Sewing pattern for Blender  -->'
-        svgstring += '\n<defs><style>.seam{stroke: #000; stroke-width:1px; fill:white} .sewinguide{stroke-width:0.1px;}</style></defs>'
+        svgstring += '\n<defs><style>.seam{stroke: #000; stroke-width:1px; fill:white} .sewinguide{stroke-width:1px;}</style></defs>'
         
         #get loops:
         bpy.ops.object.mode_set(mode='EDIT')
@@ -146,15 +147,25 @@ class Export_Sewingpattern(bpy.types.Operator):
             if (len(lg) == 0):
                 continue
             lg.append(lg[0])
-            svgstring += '\n<g>' 
+            svgstring += '\n<g>'
+            #border
             svgstring += '<path class="seam" d="M ' 
             for l in lg:
                 uv = l[uv_layer].uv.copy()
                 svgstring += str(uv.x*self.size[0])
                 svgstring += ','
-                svgstring += str(uv.y*self.size[1])
+                svgstring += str((1-uv.y)*self.size[1])
                 svgstring += ' '
             svgstring += '"/></g>'
+            #markers
+            if (self.alignment_markers != 'OFF'):
+                for l in lg:
+                    has_wire = False
+                    for w in l.vert.link_edges:
+                        if w.is_wire and w.seam:
+                            has_wire = True
+                            svgstring += self.add_alignment_marker(l, w, uv_layer)
+            
         
         svgstring += '\n</svg>'
         
@@ -163,4 +174,67 @@ class Export_Sewingpattern(bpy.types.Operator):
             
         bpy.ops.object.mode_set(mode='OBJECT')
         
+    def add_alignment_marker(self, loop, wire, uv_layer):
+        wire_dir = mathutils.Vector((0,0));
+        for l in loop.vert.link_edges:
+            if (len(l.link_loops) > 0 and len(l.link_faces) == 1):
+                this_dir = l.link_loops[0][uv_layer].uv - l.link_loops[0].link_loop_next[uv_layer].uv
+                if (l.link_loops[0].vert == loop.vert):
+                    wire_dir -= this_dir
+                else:
+                    wire_dir -= this_dir
         
+        wire_dir.normalize()
+        wire_dir.y *= -1;
+        wire_dir.xy = wire_dir.yx
+        wire_dir *= 0.01;
+        
+        sew_color = mathutils.Color((1,0,0))
+        color_hash = (hash(wire))
+        color_hash /= 100000000.0
+        color_hash *= 1345235.23523
+        color_hash %= 1.0
+        sew_color.hsv = color_hash, 1, 1
+        sew_color_hex = "#%.2x%.2x%.2x" % (int(sew_color.r * 255), int(sew_color.g * 255), int(sew_color.b * 255))
+        
+        returnstring = '<path class="sewinguide" stroke="' + sew_color_hex + '" d="M '
+        uv1 = loop[uv_layer].uv.copy();
+        returnstring += str((uv1.x + wire_dir.x) * self.size[0])
+        returnstring += ','
+        returnstring += str((1-(uv1.y + wire_dir.y)) * self.size[1])
+        returnstring += ' '
+    
+        returnstring += str((uv1.x - wire_dir.x) * self.size[0])
+        returnstring += ','
+        returnstring += str((1-(uv1.y - wire_dir.y)) * self.size[1])
+        returnstring += ' '
+        returnstring += '"/>\n'  
+        
+        return returnstring
+        
+    def auto_detect_markers(self):
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_mode(type="EDGE")
+        bpy.ops.mesh.select_all(action='SELECT')
+
+        obj = bpy.context.edit_object
+        me = obj.data
+        bm = bmesh.from_edit_mesh(me)
+
+        bpy.ops.mesh.region_to_loop()
+
+        bpy.ops.mesh.select_mode(type="VERT")
+
+        boundary_vertices = [v for v in bm.verts if v.select]
+
+        for v in boundary_vertices:
+            intrest = 0
+            for e in v.link_edges:
+                if (len(e.link_faces) != 0):
+                    intrest += 1;
+            if intrest == 2:
+                for l in v.link_edges:
+                    if (len(l.link_faces) == 0):
+                        l.seam = True
+        
+    
