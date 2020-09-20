@@ -8,6 +8,9 @@ from bpy.props import (
     IntVectorProperty,
     FloatProperty,
 )
+import bmesh
+import mathutils
+import random
 
 class Export_Sewingpattern(bpy.types.Operator):
     """Export Sewingpattern"""
@@ -79,13 +82,85 @@ class Export_Sewingpattern(bpy.types.Operator):
             bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
 
         filepath = self.filepath
-        filepath = bpy.path.ensure_ext(filepath, "." + self.mode.lower())
+        filepath = bpy.path.ensure_ext(filepath, "." + self.file_format.lower())
         
         #todo: data
 
-        export(filepath, data, self.size[0], self.size[1])
+        self.export(filepath)
 
         if is_editmode:
             bpy.ops.object.mode_set(mode='EDIT', toggle=False)
 
         return {'FINISHED'}
+    
+    def export(self, filepath):
+        svgstring = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + str(self.size[0]) + ' ' + str(self.size[1]) +'">'
+        #svgstring += '<!-- Exported using the Seams to Sewing pattern for Blender  -->'
+        svgstring += '\n<defs><style>.seam{stroke: #000; stroke-width:1px; fill:white} .sewinguide{stroke-width:0.1px;}</style></defs>'
+        
+        #get loops:
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_mode(type="EDGE")
+        bpy.ops.mesh.select_all(action='SELECT')
+
+        obj = bpy.context.edit_object
+        me = obj.data
+        bm = bmesh.from_edit_mesh(me)
+
+        bpy.ops.mesh.region_to_loop()
+
+        boundary_loop = [e for e in bm.edges if e.select]
+
+        relevant_loops=[]
+
+        for e in boundary_loop:
+            relevant_loops.append(e.link_loops[0])
+    
+        loop_groups = [[]]
+        
+        while (len(relevant_loops) > 0):
+            temp_group = [relevant_loops[0]]
+            vertex_to_match = relevant_loops[0].link_loop_next.vert
+            relevant_loops.remove(relevant_loops[0])
+            match = True
+            while(match == True):
+                match = False
+                for x in range(0, len(relevant_loops)):
+                    if (relevant_loops[x].link_loop_next.vert == vertex_to_match):
+                        temp_group.append(relevant_loops[x])
+                        vertex_to_match = relevant_loops[x].vert
+                        relevant_loops.remove(relevant_loops[x])
+                        match = True
+                        break
+                    if (relevant_loops[x].vert == vertex_to_match):
+                        temp_group.append(relevant_loops[x])
+                        vertex_to_match = relevant_loops[x].link_loop_next.vert
+                        relevant_loops.remove(relevant_loops[x])
+                        match = True
+                        break
+            loop_groups.append(temp_group)
+            
+        uv_layer = bm.loops.layers.uv.active   
+
+        for lg in loop_groups:
+            if (len(lg) == 0):
+                continue
+            lg.append(lg[0])
+            svgstring += '\n<g>' 
+            svgstring += '<path class="seam" d="M ' 
+            for l in lg:
+                uv = l[uv_layer].uv.copy()
+                svgstring += str(uv.x*self.size[0])
+                svgstring += ','
+                svgstring += str(uv.y*self.size[1])
+                svgstring += ' '
+            svgstring += '"/></g>'
+        
+        svgstring += '\n</svg>'
+        
+        with open(filepath, "w") as file:
+            file.write(svgstring)
+            
+        bpy.ops.object.mode_set(mode='OBJECT')
+        
+        
