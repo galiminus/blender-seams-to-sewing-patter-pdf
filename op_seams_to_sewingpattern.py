@@ -57,11 +57,10 @@ class Seams_To_SewingPattern(Operator):
             
             progress += len(selected_faces)
             wm.progress_update((progress / progress_max))
-            
-            bpy.ops.uv.unwrap(method='ANGLE_BASED', margin=0.0)
 
         bpy.ops.mesh.select_all(action='SELECT') 
         bpy.ops.uv.select_all(action='SELECT')
+        bpy.ops.uv.unwrap(method='ANGLE_BASED', margin=0.02)
         bmesh.update_edit_mesh(me, False)    
 
         uv_layer = bm.loops.layers.uv.active

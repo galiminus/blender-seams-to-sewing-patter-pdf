@@ -199,14 +199,15 @@ class Export_Sewingpattern(bpy.types.Operator):
         
         returnstring = '<path class="sewinguide" stroke="' + sew_color_hex + '" d="M '
         uv1 = loop[uv_layer].uv.copy();
+        uv1.y = 1-uv1.y;
         returnstring += str((uv1.x + wire_dir.x) * self.size[0])
         returnstring += ','
-        returnstring += str((1-(uv1.y + wire_dir.y)) * self.size[1])
+        returnstring += str((uv1.y + wire_dir.y) * self.size[1])
         returnstring += ' '
     
         returnstring += str((uv1.x - wire_dir.x) * self.size[0])
         returnstring += ','
-        returnstring += str((1-(uv1.y - wire_dir.y)) * self.size[1])
+        returnstring += str((uv1.y - wire_dir.y) * self.size[1])
         returnstring += ' '
         returnstring += '"/>\n'  
         
