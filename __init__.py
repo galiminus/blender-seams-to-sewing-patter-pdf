@@ -12,9 +12,13 @@ if "bpy" in locals():
     import importlib
     importlib.reload(op_seams_to_sewingpattern)
     importlib.reload(op_export_sewingpattern)
+    importlib.reload(op_quick_clothsim)
+    importlib.reload(op_boundary_alinged_remesh)
 else:
     from . import op_seams_to_sewingpattern
     from . import op_export_sewingpattern
+    from . import op_quick_clothsim
+    from . import op_boundary_alinged_remesh
 
 import bpy
 from bpy.types import Menu
@@ -37,13 +41,17 @@ class VIEW3D_MT_object_seams_to_sewing_pattern_menu(Menu):
         layout.operator("object.seams_to_sewingpattern", text="Seams to Sewing Pattern", icon="OUTLINER_DATA_SURFACE")
         layout.separator()
         layout.operator("object.export_sewingpattern", text="Export Sewing Pattern (.svg)", icon="EXPORT")
+        layout.separator()
+        layout.operator("object.quick_clothsim", text="Quick Clothsim", icon="MOD_CLOTH")
 
 
 # Register
 classes = [
     VIEW3D_MT_object_seams_to_sewing_pattern_menu,
     op_seams_to_sewingpattern.Seams_To_SewingPattern,
-    op_export_sewingpattern.Export_Sewingpattern
+    op_export_sewingpattern.Export_Sewingpattern,
+    op_quick_clothsim.QuickClothsim,
+    op_boundary_alinged_remesh.Remesher
     ]
 
 def register():

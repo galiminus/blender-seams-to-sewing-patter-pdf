@@ -28,10 +28,15 @@ class Seams_To_SewingPattern(Operator):
         # select all seams
 
         bm = bmesh.from_edit_mesh(me)
+        
+        max_edge_length = 0.1
+        
+        self.ensure_edgelength(max_edge_length * 0.9, bm) #A bias for when the mesh is unwrapped 
+         
         for e in bm.edges:
             if e.seam:
                 e.select = True
-
+                
         function_wrapper.do_bevel()
 
         bpy.ops.mesh.delete(type='ONLY_FACE')
@@ -157,7 +162,20 @@ class Seams_To_SewingPattern(Operator):
         bpy.ops.mesh.select_all(action='SELECT') 
 
         bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
+        bpy.ops.remesh.boundary_aligned_remesh(edge_length = max_edge_length)
         
         wm.progress_end()
 
         return{'FINISHED'}
+    
+    def ensure_edgelength(self, max_length, mesh):
+        seam_edges = list(filter(lambda e: e.seam, mesh.edges))
+        for e in seam_edges:
+            edge_length = e.calc_length()
+            if (edge_length >= max_length):
+                e.select = True
+                ea = []
+                ea.append(e) 
+                bmesh.ops.subdivide_edges(mesh, edges=ea, cuts=math.floor(edge_length / max_length))
+                e.select = False
+        #done
