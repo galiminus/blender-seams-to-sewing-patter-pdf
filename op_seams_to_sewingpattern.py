@@ -1,8 +1,17 @@
 import bpy
+from collections import defaultdict
 from bpy.types import Operator
 import bmesh
 import mathutils
 import math
+from bpy.props import (
+        StringProperty,
+        BoolProperty,
+        IntProperty,
+        FloatProperty,
+        FloatVectorProperty,
+        EnumProperty,
+        )
 
 if bpy.app.version >= (2, 90, 0):
     from . import function_wrapper_2_9 as function_wrapper
@@ -15,6 +24,30 @@ class Seams_To_SewingPattern(Operator):
     bl_description = "Converts a manifold mesh with seams into a swewing pattern for cloth simulation"
     bl_options = {'REGISTER', 'UNDO'}
     
+    use_remesh: BoolProperty(
+        name="Remesh",
+        description="Use Boundary Aligned Remesh to remesh",
+        default=True,
+    )
+    target_tris: IntProperty(
+        name="Target number of triangles",
+        description="Actual number of triangle migh be a bit off",
+        default=5000,
+    )
+
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self, width=200)
+
+    def draw(self, context):
+        layout = self.layout
+        row = layout.row()
+        row.prop(self, "use_remesh")
+        row = layout.row()
+        row.prop(self, "target_tris")
+        row.enabled = self.use_remesh
+
     def execute(self, context):
         wm = bpy.context.window_manager
         bpy.ops.object.mode_set(mode='EDIT')
@@ -28,16 +61,32 @@ class Seams_To_SewingPattern(Operator):
         # select all seams
 
         bm = bmesh.from_edit_mesh(me)
+
+        #calculate edge length based on a surface of equilateral triangles
         
-        max_edge_length = 0.1
-        
-        self.ensure_edgelength(max_edge_length * 0.9, bm) #A bias for when the mesh is unwrapped 
-         
+        if (self.use_remesh):
+            current_area = sum(f.calc_area() for f in bm.faces)
+            target_triangle_count = self.target_tris
+            area_per_triangle = current_area / target_triangle_count
+
+            max_edge_length = math.sqrt(area_per_triangle/(math.sqrt(3)/4))
+
+            self.ensure_edgelength(max_edge_length * 0.75, bm, wm) #A bias to compensate for stretching
+
+
         for e in bm.edges:
             if e.seam:
                 e.select = True
-                
+
         function_wrapper.do_bevel()
+
+        #fix fanning seams
+        degenerate_edges = list()
+        for f in list(filter(lambda f: (f.select and (len(f.edges) > 4)), bm.faces)):
+            for e in f.edges:
+                degenerate_edges.append(e)
+
+        bmesh.ops.collapse(bm, edges = degenerate_edges, uvs = True)
 
         bpy.ops.mesh.delete(type='ONLY_FACE')
 
@@ -162,20 +211,34 @@ class Seams_To_SewingPattern(Operator):
         bpy.ops.mesh.select_all(action='SELECT') 
 
         bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
-        bpy.ops.remesh.boundary_aligned_remesh(edge_length = max_edge_length)
+
+        if (self.use_remesh):
+            bpy.ops.remesh.boundary_aligned_remesh(edge_length = max_edge_length, iterations = 10)
         
         wm.progress_end()
 
+        #fix 2.9 wm.progress problem
+        bpy.context.window.cursor_set('NONE')
+        bpy.context.window.cursor_set('DEFAULT')
+
         return{'FINISHED'}
     
-    def ensure_edgelength(self, max_length, mesh):
+    def ensure_edgelength(self, max_length, mesh, wm):
         seam_edges = list(filter(lambda e: e.seam, mesh.edges))
+        edge_groups = defaultdict(list)
         for e in seam_edges:
-            edge_length = e.calc_length()
-            if (edge_length >= max_length):
-                e.select = True
-                ea = []
-                ea.append(e) 
-                bmesh.ops.subdivide_edges(mesh, edges=ea, cuts=math.floor(edge_length / max_length))
-                e.select = False
+            edge_groups[math.floor(e.calc_length() / max_length)].append(e)
+
+        wm.progress_begin(0, 99)
+        progress = 0;
+
+        #A little weird, but by grouping the edges by number of required cuts,
+        #subdivide_edges() can work a lot more effecient
+
+        for eg in edge_groups.values():
+            edge_length = eg[0].calc_length()
+            wm.progress_update((progress / len(edge_groups)))
+            bmesh.ops.subdivide_edges(mesh, edges=eg, cuts=math.floor(edge_length / max_length))
+
+        bmesh.ops.triangulate(mesh, faces = mesh.faces, quad_method = 'BEAUTY', ngon_method = 'BEAUTY')
         #done

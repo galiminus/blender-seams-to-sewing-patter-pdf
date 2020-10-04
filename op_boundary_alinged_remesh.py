@@ -120,13 +120,17 @@ class BoundaryAlignedRemesher:
                 vert.co = location
     
     def remesh(self,edge_length=0.05, iterations=30, quads=True):
+        wm = bpy.context.window_manager
+        wm.progress_begin(0, 99)
+
         """ Coordenates remeshing """
         if quads:
             rule = (-1,-2, 0, 1)
         else:
             rule = (0, 1, 2, 3)
         
-        for _ in range(iterations):
+        for i in range(iterations):
+            wm.progress_update(i/iterations)
             self.enforce_edge_length(edge_length=edge_length)
             self.align_verts(rule=rule)
             self.reproject()
