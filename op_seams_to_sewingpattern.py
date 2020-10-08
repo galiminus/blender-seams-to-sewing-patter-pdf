@@ -51,16 +51,21 @@ class Seams_To_SewingPattern(Operator):
     def execute(self, context):
         wm = bpy.context.window_manager
         bpy.ops.object.mode_set(mode='EDIT')
-        bpy.ops.mesh.select_all(action='DESELECT')
+
 
         obj = bpy.context.edit_object
         me = obj.data
 
         bpy.ops.mesh.select_mode(type="EDGE")
 
-        # select all seams
+        bpy.ops.mesh.select_all(action='SELECT')
+        bpy.ops.uv.select_all(action='SELECT')
+        bpy.ops.uv.unwrap(method='ANGLE_BASED', margin=0.02)
+        bpy.ops.mesh.select_all(action='DESELECT')
 
         bm = bmesh.from_edit_mesh(me)
+
+        bmesh.update_edit_mesh(me, False)
 
         #calculate edge length based on a surface of equilateral triangles
         
@@ -82,9 +87,19 @@ class Seams_To_SewingPattern(Operator):
 
         #fix fanning seams
         degenerate_edges = list()
-        for f in list(filter(lambda f: (f.select and (len(f.edges) > 4)), bm.faces)):
-            for e in f.edges:
-                degenerate_edges.append(e)
+        for f in list(filter(lambda f: (f.select), bm.faces)):
+            is_degenerate = False
+            for v in f.verts:
+                vert_degenerate = True
+                for e in v.link_edges:
+                    if e.seam:
+                        vert_degenerate = False
+                if vert_degenerate:
+                    is_degenerate = True
+
+            if is_degenerate:
+                for e in f.edges:
+                    degenerate_edges.append(e)
 
         bmesh.ops.collapse(bm, edges = degenerate_edges, uvs = True)
 
@@ -112,11 +127,6 @@ class Seams_To_SewingPattern(Operator):
             progress += len(selected_faces)
             wm.progress_update((progress / progress_max))
 
-        bpy.ops.mesh.select_all(action='SELECT') 
-        bpy.ops.uv.select_all(action='SELECT')
-        bpy.ops.uv.unwrap(method='CONFORMAL', margin=0.02)
-        bmesh.update_edit_mesh(me, False)    
-
         uv_layer = bm.loops.layers.uv.active
         
         progress = 0
@@ -129,18 +139,14 @@ class Seams_To_SewingPattern(Operator):
             bpy.ops.mesh.select_all(action='DESELECT')
             average_position = mathutils.Vector((0,0,0))
             facenum = 0
-            average_normal = mathutils.Vector((0,0,0))
             
-            # calculate the area, average position, and average normal
+            # calculate the area, average position
             
             for f in g:
                 f.select = True
                 previous_area += f.calc_area()
                 average_position += f.calc_center_median()
-                average_normal += f.normal
                 facenum += 1
-                        
-            average_normal.normalize()
             
             average_position /= facenum
 
@@ -164,9 +170,9 @@ class Seams_To_SewingPattern(Operator):
             # reorient the tangent and bitangent
             
             average_uv_position /= uv_position_samples
-            average_normal = average_normal.normalized()
             average_tangent = average_tangent.normalized()
             average_bitangent = average_bitangent.normalized()
+            average_normal = average_tangent.cross(average_bitangent).normalized()
             halfvector = average_bitangent + average_tangent
             halfvector /= 2
             halfvector.normalize()
