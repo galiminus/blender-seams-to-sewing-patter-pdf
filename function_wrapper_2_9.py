@@ -2,4 +2,4 @@ import bpy
 import bmesh
 
 def do_bevel():
-    bpy.ops.mesh.bevel(affect='EDGES', offset=0.001)
+    bpy.ops.mesh.bevel(affect='EDGES', offset=0.0002)

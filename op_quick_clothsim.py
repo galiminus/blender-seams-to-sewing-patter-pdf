@@ -15,7 +15,7 @@ class ObjectModeOperator:
         return context.mode == 'OBJECT'
 
 class QuickClothsim(ObjectModeOperator, Operator):
-    """Add fur setup to the selected objects"""
+    """Add clothsim setup to the selected objects"""
     bl_idname = "object.quick_clothsim"
     bl_label = "Quick Clothsim"
     bl_options = {'REGISTER', 'UNDO'}

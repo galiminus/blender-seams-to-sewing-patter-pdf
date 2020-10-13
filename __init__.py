@@ -14,11 +14,13 @@ if "bpy" in locals():
     importlib.reload(op_export_sewingpattern)
     importlib.reload(op_quick_clothsim)
     importlib.reload(op_boundary_alinged_remesh)
+    importlib.reload(op_clean_up_edges)
 else:
     from . import op_seams_to_sewingpattern
     from . import op_export_sewingpattern
     from . import op_quick_clothsim
     from . import op_boundary_alinged_remesh
+    from . import op_clean_up_edges
 
 import bpy
 from bpy.types import Menu
@@ -51,7 +53,8 @@ classes = [
     op_seams_to_sewingpattern.Seams_To_SewingPattern,
     op_export_sewingpattern.Export_Sewingpattern,
     op_quick_clothsim.QuickClothsim,
-    op_boundary_alinged_remesh.Remesher
+    op_boundary_alinged_remesh.Remesher,
+    op_clean_up_edges.CleanUpEdges
     ]
 
 def register():

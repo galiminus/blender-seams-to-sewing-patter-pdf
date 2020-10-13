@@ -59,7 +59,7 @@ class Seams_To_SewingPattern(Operator):
         bpy.ops.mesh.select_mode(type="EDGE")
 
         bpy.ops.mesh.select_all(action='SELECT')
-        bpy.ops.uv.select_all(action='SELECT')
+        #bpy.ops.uv.select_all(action='SELECT') ??
         bpy.ops.uv.unwrap(method='ANGLE_BASED', margin=0.02)
         bpy.ops.mesh.select_all(action='DESELECT')
 
@@ -76,7 +76,7 @@ class Seams_To_SewingPattern(Operator):
 
             max_edge_length = math.sqrt(area_per_triangle/(math.sqrt(3)/4))
 
-            self.ensure_edgelength(max_edge_length * 0.75, bm, wm) #A bias to compensate for stretching
+            self.ensure_edgelength(max_edge_length * 0.8, bm, wm) #A bias to compensate for stretching
 
 
         for e in bm.edges:
@@ -248,3 +248,4 @@ class Seams_To_SewingPattern(Operator):
 
         bmesh.ops.triangulate(mesh, faces = mesh.faces, quad_method = 'BEAUTY', ngon_method = 'BEAUTY')
         #done
+
