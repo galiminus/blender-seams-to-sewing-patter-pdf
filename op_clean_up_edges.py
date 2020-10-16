@@ -19,15 +19,10 @@ class FakeVert:
   pos = None
   verts = None
 
-class ObjectModeOperator:
-    @classmethod
-    def poll(cls, context):
-        return context.mode == 'OBJECT'
-
 class CleanUpEdges(bpy.types.Operator):
     """Clean up selected edges, for example after using the knife tool"""
-    bl_idname = "mesh.clean_up_edges"
-    bl_label = "Clean up edges"
+    bl_idname = "mesh.clean_up_knife_cut"
+    bl_label = "Clean up knife cut"
     bl_options = {'REGISTER', 'UNDO'}
 
     delimit_boundary: BoolProperty(
@@ -66,9 +61,12 @@ class CleanUpEdges(bpy.types.Operator):
 
     def execute(self, context):
 
-        obj = bpy.context.edit_object
-        me = obj.data
-        bm = bmesh.from_edit_mesh(me)
+        obj = bpy.context.active_object
+        bm = bmesh.from_edit_mesh(obj.data)
+
+        bm.verts.ensure_lookup_table()
+        bm.edges.ensure_lookup_table()
+        bm.faces.ensure_lookup_table()
 
         bpy.ops.mesh.select_mode(type="EDGE")
 
@@ -103,18 +101,7 @@ class CleanUpEdges(bpy.types.Operator):
                         break
 
         edges = list(filter(lambda e: e.select, bm.edges))
-        '''
-        edges.sort(key=lambda e: e.calc_length())
-        for _ in range(max_it):
-            edges = list(filter(lambda e: e.select, bm.edges))
-            if (len(edges) is 0):
-                return {'FINISHED'}
-            shortest = min(edges, key=lambda e: e.calc_length())
-            if (shortest.calc_length() < self.min_length):
-                to_collapse = []
-                to_collapse.append(shortest)
-                bmesh.ops.collapse(bm, edges=to_collapse, uvs=True)
-        '''
+
         fake_verts = dict()
         for e in edges:
             for v in e.verts:
@@ -162,27 +149,12 @@ class CleanUpEdges(bpy.types.Operator):
                         fe.v2 = new_fake_vert
 
         for fv in fake_vert_list:
-            print(fv.pos)
             for v in fv.verts:
                 v.co = fv.pos
 
-        bpy.ops.mesh.remove_doubles()
+        bpy.ops.mesh.remove_doubles(threshold=0.0001)
 
         print(len(edges))
-
-        '''
-
-        for _ in range(max_it):
-            shortest = min(edges, key=lambda e: e.calc_length())
-            if (shortest.calc_length() < self.min_length):
-                avg = mathutils.Vector()
-                for v in shortest.verts:
-                    avg += v.co
-                avg /= 2
-                for v in shortest.verts:
-                    v.co = avg
-                edges.remove(shortest)
-        '''
 
         selection = list(filter(lambda e: e.select, bm.edges))
 
@@ -237,9 +209,10 @@ class CleanUpEdges(bpy.types.Operator):
             bmesh.ops.smooth_vert(bm, verts=verts_to_smooth, factor= smoothing_factor, use_axis_x=True, use_axis_y=True, use_axis_z=True)
             print("smooth")
 
-        bmesh.update_edit_mesh(me)
+        if obj.mode == 'EDIT':
+            bmesh.update_edit_mesh(obj.data, loop_triangles=True, destructive=True)
+
         bm.free()
-        me.update()
 
         return {'FINISHED'}
 
