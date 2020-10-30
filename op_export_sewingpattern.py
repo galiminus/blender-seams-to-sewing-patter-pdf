@@ -95,10 +95,6 @@ class Export_Sewingpattern(bpy.types.Operator):
         return {'FINISHED'}
     
     def export(self, filepath):
-        svgstring = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + str(self.size[0]) + ' ' + str(self.size[1]) +'">'
-        #svgstring += '<!-- Exported using the Seams to Sewing pattern for Blender  -->'
-        svgstring += '\n<defs><style>.seam{stroke: #000; stroke-width:1px; fill:white} .sewinguide{stroke-width:1px;}</style></defs>'
-        
         #get loops:
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.select_mode(type="EDGE")
@@ -107,6 +103,14 @@ class Export_Sewingpattern(bpy.types.Operator):
         obj = bpy.context.edit_object
         me = obj.data
         bm = bmesh.from_edit_mesh(me)
+
+        document_scale = 1000.0 #millimeter
+        document_scale *= obj["S2S_UVtoWORLDscale"]
+
+        svgstring = '<svg xmlns="http://www.w3.org/2000/svg"\n viewBox="0 0 ' + str(document_scale) + ' ' + str(document_scale) +'"\n'
+        svgstring += 'width="' + str(document_scale) + 'mm" height="' + str(document_scale) + 'mm">'
+        #svgstring += '<!-- Exported using the Seams to Sewing pattern for Blender  -->'
+        svgstring += '\n<defs><style>.seam{stroke: #000; stroke-width:1px; fill:white} .sewinguide{stroke-width:1px;}</style></defs>'
 
         bpy.ops.mesh.region_to_loop()
 
@@ -152,9 +156,9 @@ class Export_Sewingpattern(bpy.types.Operator):
             svgstring += '<path class="seam" d="M ' 
             for l in lg:
                 uv = l[uv_layer].uv.copy()
-                svgstring += str(uv.x*self.size[0])
+                svgstring += str(uv.x*document_scale)
                 svgstring += ','
-                svgstring += str((1-uv.y)*self.size[1])
+                svgstring += str((1-uv.y)*document_scale)
                 svgstring += ' '
             svgstring += '"/></g>'
             #markers
@@ -164,7 +168,7 @@ class Export_Sewingpattern(bpy.types.Operator):
                     for w in l.vert.link_edges:
                         if w.is_wire and w.seam:
                             has_wire = True
-                            svgstring += self.add_alignment_marker(l, w, uv_layer)
+                            svgstring += self.add_alignment_marker(l, w, uv_layer, document_scale)
             
         
         svgstring += '\n</svg>'
@@ -174,7 +178,7 @@ class Export_Sewingpattern(bpy.types.Operator):
             
         bpy.ops.object.mode_set(mode='OBJECT')
         
-    def add_alignment_marker(self, loop, wire, uv_layer):
+    def add_alignment_marker(self, loop, wire, uv_layer, document_scale):
         wire_dir = mathutils.Vector((0,0));
         for l in loop.vert.link_edges:
             if (len(l.link_loops) > 0 and len(l.link_faces) == 1):
@@ -185,7 +189,7 @@ class Export_Sewingpattern(bpy.types.Operator):
                     wire_dir -= this_dir
         
         wire_dir.normalize()
-        wire_dir.y *= -1;
+        #wire_dir.y *= -1;
         wire_dir.xy = wire_dir.yx
         wire_dir *= 0.01;
         
@@ -200,14 +204,14 @@ class Export_Sewingpattern(bpy.types.Operator):
         returnstring = '<path class="sewinguide" stroke="' + sew_color_hex + '" d="M '
         uv1 = loop[uv_layer].uv.copy();
         uv1.y = 1-uv1.y;
-        returnstring += str((uv1.x + wire_dir.x) * self.size[0])
+        returnstring += str((uv1.x + wire_dir.x) * document_scale)
         returnstring += ','
-        returnstring += str((uv1.y + wire_dir.y) * self.size[1])
+        returnstring += str((uv1.y + wire_dir.y) * document_scale)
         returnstring += ' '
     
-        returnstring += str((uv1.x - wire_dir.x) * self.size[0])
+        returnstring += str((uv1.x - wire_dir.x) * document_scale)
         returnstring += ','
-        returnstring += str((uv1.y - wire_dir.y) * self.size[1])
+        returnstring += str((uv1.y - wire_dir.y) * document_scale)
         returnstring += ' '
         returnstring += '"/>\n'  
         

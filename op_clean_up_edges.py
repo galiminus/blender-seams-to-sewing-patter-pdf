@@ -60,6 +60,7 @@ class CleanUpEdges(bpy.types.Operator):
     )
 
     def execute(self, context):
+        bpy.ops.mesh.select_mode(type="EDGE")
 
         obj = bpy.context.active_object
         bm = bmesh.from_edit_mesh(obj.data)
@@ -67,8 +68,6 @@ class CleanUpEdges(bpy.types.Operator):
         bm.verts.ensure_lookup_table()
         bm.edges.ensure_lookup_table()
         bm.faces.ensure_lookup_table()
-
-        bpy.ops.mesh.select_mode(type="EDGE")
 
         max_it = len(list(filter(lambda e: e.select, bm.edges)))
         edges = list(filter(lambda e: e.select, bm.edges))
@@ -152,7 +151,12 @@ class CleanUpEdges(bpy.types.Operator):
             for v in fv.verts:
                 v.co = fv.pos
 
+        fake_vert_list.clear()
+        fake_edges.clear()
+        fake_verts.clear()
+
         bpy.ops.mesh.remove_doubles(threshold=0.0001)
+        bm = bmesh.from_edit_mesh(bpy.context.active_object.data)
 
         print(len(edges))
 
@@ -209,10 +213,9 @@ class CleanUpEdges(bpy.types.Operator):
             bmesh.ops.smooth_vert(bm, verts=verts_to_smooth, factor= smoothing_factor, use_axis_x=True, use_axis_y=True, use_axis_z=True)
             print("smooth")
 
-        if obj.mode == 'EDIT':
-            bmesh.update_edit_mesh(obj.data, loop_triangles=True, destructive=True)
 
-        bm.free()
+        bmesh.update_edit_mesh(obj.data, loop_triangles=True, destructive=True)
+
 
         return {'FINISHED'}
 

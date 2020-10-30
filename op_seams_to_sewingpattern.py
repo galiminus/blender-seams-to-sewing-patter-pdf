@@ -130,6 +130,8 @@ class Seams_To_SewingPattern(Operator):
         uv_layer = bm.loops.layers.uv.active
         
         progress = 0
+
+        avg_area_ratio = 0
             
         for g in faceGroups:
             progress += 1
@@ -209,9 +211,14 @@ class Seams_To_SewingPattern(Operator):
             
             area_ratio = previous_area / new_area
             area_ratio = math.sqrt(area_ratio)
+            avg_area_ratio += area_ratio
             bpy.ops.transform.resize(value=(area_ratio, area_ratio, area_ratio))
             
         # done
+
+        area_ratio /= len(faceGroups)
+
+        obj["S2S_UVtoWORLDscale"] = area_ratio
             
         bmesh.update_edit_mesh(me, False)
         bpy.ops.mesh.select_all(action='SELECT') 
