@@ -216,9 +216,9 @@ class Seams_To_SewingPattern(Operator):
             
         # done
 
-        area_ratio /= len(faceGroups)
+        avg_area_ratio /= len(faceGroups)
 
-        obj["S2S_UVtoWORLDscale"] = area_ratio
+        obj["S2S_UVtoWORLDscale"] = avg_area_ratio
             
         bmesh.update_edit_mesh(me, False)
         bpy.ops.mesh.select_all(action='SELECT') 

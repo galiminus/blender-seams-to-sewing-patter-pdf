@@ -46,12 +46,6 @@ class Export_Sewingpattern(bpy.types.Operator):
         description="File format to export the UV layout to",
         default='SVG',
     )
-    size: IntVectorProperty(
-        size=2,
-        default=(1024, 1024),
-        min=8, max=32768,
-        description="Dimensions of the exported file",
-    )
 
     @classmethod
     def poll(cls, context):
