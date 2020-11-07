@@ -25,6 +25,9 @@ else:
 import bpy
 from bpy.types import Menu
 
+def clean_up_func(self, context):
+    self.layout.separator()
+    self.layout.operator("mesh.clean_up_knife_cut")
 
 def menu_func(self, context):
     lay_out = self.layout
@@ -63,10 +66,17 @@ def register():
         register_class(cls)
     # Adds submenu in View3D > Seams to Sewing Pattern
     bpy.types.VIEW3D_MT_object.append(menu_func)
+    bpy.types.VIEW3D_MT_edit_mesh_clean.append(clean_up_func)
+    bpy.types.VIEW3D_MT_edit_mesh_edges.append(clean_up_func)
+    bpy.types.VIEW3D_MT_edit_mesh_context_menu.append(clean_up_func)
+
 
 
 def unregister():
     
+    bpy.types.VIEW3D_MT_edit_mesh_clean.remove(clean_up_func)
+    bpy.types.VIEW3D_MT_edit_mesh_edges.remove(clean_up_func)
+    bpy.types.VIEW3D_MT_edit_mesh_context_menu.append(clean_up_func)
     bpy.types.VIEW3D_MT_object.remove(menu_func)
     # Removes submenu
     from bpy.utils import unregister_class
