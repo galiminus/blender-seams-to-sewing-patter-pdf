@@ -25,6 +25,10 @@ class CleanUpEdges(bpy.types.Operator):
     bl_label = "Clean up knife cut"
     bl_options = {'REGISTER', 'UNDO'}
 
+
+    remove_poles_beforehand: BoolProperty(
+        default=True
+    )
     delimit_boundary: BoolProperty(
         default=True
     )
@@ -42,7 +46,7 @@ class CleanUpEdges(bpy.types.Operator):
     )
 
     relax_iterations: IntProperty(
-        default=3,
+        default=0,
         min=0,
         soft_max=20
     )
@@ -62,12 +66,28 @@ class CleanUpEdges(bpy.types.Operator):
     def execute(self, context):
         bpy.ops.mesh.select_mode(type="EDGE")
 
+
         obj = bpy.context.active_object
         bm = bmesh.from_edit_mesh(obj.data)
 
         bm.verts.ensure_lookup_table()
         bm.edges.ensure_lookup_table()
         bm.faces.ensure_lookup_table()
+
+
+        if self.remove_poles_beforehand:
+            selection = list(filter(lambda e: e.select, bm.edges))
+            #clean up possible non-manifold mesh parts
+            selected_verts = list(filter(lambda v: v.select, bm.verts))
+            bpy.ops.mesh.select_more(use_face_step=True)
+            neighboring_verts = list(filter(lambda v: v.select, bm.verts))
+            bpy.ops.mesh.region_to_loop()
+            boundary_verts = list(filter(lambda v: v.select, bm.verts))
+            invalid_verts = list((set(neighboring_verts) - set(boundary_verts)) - set(selected_verts))
+            bmesh.ops.dissolve_verts(bm, verts=invalid_verts)
+            bpy.ops.mesh.select_all(action='DESELECT')
+            for e in selection:
+                e.select = True
 
         max_it = len(list(filter(lambda e: e.select, bm.edges)))
         edges = list(filter(lambda e: e.select, bm.edges))

@@ -39,8 +39,6 @@ class Export_Sewingpattern(bpy.types.Operator):
         items=(
             ('SVG', "Scalable Vector Graphic (.svg)",
              "Export the sewing pattern to a .SVG file"),
-            ('PNG', "PNG Image (.png)",
-             "Export the sewing pattern to a .PNG file")
         ),
         name="Format",
         description="File format to export the UV layout to",
