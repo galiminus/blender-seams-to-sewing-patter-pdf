@@ -89,8 +89,7 @@ class Export_Sewingpattern(bpy.types.Operator):
     def export(self, filepath):
         #get loops:
         bpy.ops.object.mode_set(mode='EDIT')
-        bpy.ops.mesh.select_mode(type="EDGE")
-        bpy.ops.mesh.select_all(action='SELECT')
+        bpy.ops.mesh.select_mode(type="FACE")
 
         obj = bpy.context.edit_object
         me = obj.data
@@ -104,65 +103,96 @@ class Export_Sewingpattern(bpy.types.Operator):
         #svgstring += '<!-- Exported using the Seams to Sewing pattern for Blender  -->'
         svgstring += '\n<defs><style>.seam{stroke: #000; stroke-width:1px; fill:white} .sewinguide{stroke-width:1px;}</style></defs>'
 
-        bpy.ops.mesh.region_to_loop()
+        face_groups = []
+        faces = set(bm.faces[:])
+        while faces:
+            bpy.ops.mesh.select_all(action='DESELECT')
+            face = faces.pop()
+            face.select = True
+            bpy.ops.mesh.select_linked()
+            selected_faces = {f for f in faces if f.select}
+            selected_faces.add(face) # this or bm.faces above?
+            face_groups.append(selected_faces)
+            faces -= selected_faces
 
-        boundary_loop = [e for e in bm.edges if e.select]
+        print('Loop groups for sewing pattern export: ' + str(len(face_groups)))
 
-        relevant_loops=[]
+        for fg in face_groups:
 
-        for e in boundary_loop:
-            relevant_loops.append(e.link_loops[0])
+            bpy.ops.mesh.select_all(action='DESELECT')
+            for f in fg:
+                f.select = True
+
+            bpy.ops.mesh.region_to_loop()
+
+            boundary_loop = [e for e in bm.edges if e.select]
     
-        loop_groups = [[]]
-        
-        while (len(relevant_loops) > 0):
-            temp_group = [relevant_loops[0]]
-            vertex_to_match = relevant_loops[0].link_loop_next.vert
-            relevant_loops.remove(relevant_loops[0])
-            match = True
-            while(match == True):
-                match = False
-                for x in range(0, len(relevant_loops)):
-                    if (relevant_loops[x].link_loop_next.vert == vertex_to_match):
-                        temp_group.append(relevant_loops[x])
-                        vertex_to_match = relevant_loops[x].vert
-                        relevant_loops.remove(relevant_loops[x])
-                        match = True
-                        break
-                    if (relevant_loops[x].vert == vertex_to_match):
-                        temp_group.append(relevant_loops[x])
-                        vertex_to_match = relevant_loops[x].link_loop_next.vert
-                        relevant_loops.remove(relevant_loops[x])
-                        match = True
-                        break
-            loop_groups.append(temp_group)
-            
-        uv_layer = bm.loops.layers.uv.active   
+            relevant_loops=[]
 
-        for lg in loop_groups:
-            if (len(lg) == 0):
-                continue
-            lg.append(lg[0])
-            svgstring += '\n<g>'
-            #border
-            svgstring += '<path class="seam" d="M ' 
-            for l in lg:
-                uv = l[uv_layer].uv.copy()
-                svgstring += str(uv.x*document_scale)
-                svgstring += ','
-                svgstring += str((1-uv.y)*document_scale)
-                svgstring += ' '
-            svgstring += '"/></g>'
-            #markers
-            if (self.alignment_markers != 'OFF'):
-                for l in lg:
-                    has_wire = False
-                    for w in l.vert.link_edges:
-                        if w.is_wire and w.seam:
-                            has_wire = True
-                            svgstring += self.add_alignment_marker(l, w, uv_layer, document_scale)
-            
+            for e in boundary_loop:
+                relevant_loops.append(e.link_loops[0])
         
+            loop_groups = [[]]
+
+            while (len(relevant_loops) > 0):
+                temp_group = [relevant_loops[0]]
+                vertex_to_match = relevant_loops[0].link_loop_next.vert
+                relevant_loops.remove(relevant_loops[0])
+                match = True
+                while(match == True):
+                    match = False
+                    for x in range(0, len(relevant_loops)):
+                        if (relevant_loops[x].link_loop_next.vert == vertex_to_match):
+                            temp_group.append(relevant_loops[x])
+                            vertex_to_match = relevant_loops[x].vert
+                            relevant_loops.remove(relevant_loops[x])
+                            match = True
+                            break
+                        if (relevant_loops[x].vert == vertex_to_match):
+                            temp_group.append(relevant_loops[x])
+                            vertex_to_match = relevant_loops[x].link_loop_next.vert
+                            relevant_loops.remove(relevant_loops[x])
+                            match = True
+                            break
+                loop_groups.append(temp_group)
+
+            uv_layer = bm.loops.layers.uv.active
+            
+            #print border
+
+            svgstring += '\n<g>'
+            svgstring += '<path class="seam" d="'
+
+            for lg in loop_groups:
+                if (len(lg) == 0):
+                    continue
+                lg.append(lg[0])
+
+                svgstring += 'M '
+
+                for l in lg:
+                    uv = l[uv_layer].uv.copy()
+                    svgstring += str(uv.x*document_scale)
+                    svgstring += ','
+                    svgstring += str((1-uv.y)*document_scale)
+                    svgstring += ' '
+
+            svgstring += '"/>'
+            
+            #print markers
+
+            for lg in loop_groups:
+                #markers
+                if (self.alignment_markers != 'OFF'):
+                    for l in lg:
+                        has_wire = False
+                        for w in l.vert.link_edges:
+                            if w.is_wire and w.seam:
+                                has_wire = True
+                                svgstring += self.add_alignment_marker(l, w, uv_layer, document_scale)
+
+            svgstring += '</g>'
+
         svgstring += '\n</svg>'
         
         with open(filepath, "w") as file:
