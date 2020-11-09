@@ -34,7 +34,11 @@ class Seams_To_SewingPattern(Operator):
         description="Actual number of triangle migh be a bit off",
         default=5000,
     )
-
+    do_calc_volume: BoolProperty(
+        name="Calculate and store Volume",
+        description="Calculate the mesh's volume and store in custom object data\nThis can be used in the clothsim's \"target volume\" property",
+        default=True,
+    )
 
     def invoke(self, context, event):
         wm = context.window_manager
@@ -42,6 +46,8 @@ class Seams_To_SewingPattern(Operator):
 
     def draw(self, context):
         layout = self.layout
+        row = layout.row()
+        row.prop(self, "do_calc_volume")
         row = layout.row()
         row.prop(self, "use_remesh")
         row = layout.row()
@@ -64,6 +70,8 @@ class Seams_To_SewingPattern(Operator):
         bpy.ops.mesh.select_all(action='DESELECT')
 
         bm = bmesh.from_edit_mesh(me)
+
+        obj["S2S_InitialVolume"] = bm.calc_volume()
 
         bmesh.update_edit_mesh(me, False)
 
@@ -223,10 +231,12 @@ class Seams_To_SewingPattern(Operator):
         bmesh.update_edit_mesh(me, False)
         bpy.ops.mesh.select_all(action='SELECT') 
 
-        bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
-
         if (self.use_remesh):
+            bpy.ops.mesh.dissolve_limited(angle_limit=0.01)
+            bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
             bpy.ops.remesh.boundary_aligned_remesh(edge_length = max_edge_length, iterations = 10)
+
+        bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
         
         wm.progress_end()
 
