@@ -65,7 +65,6 @@ class Seams_To_SewingPattern(Operator):
         bpy.ops.mesh.select_mode(type="EDGE")
 
         bpy.ops.mesh.select_all(action='SELECT')
-        #bpy.ops.uv.select_all(action='SELECT') ??
         bpy.ops.uv.unwrap(method='ANGLE_BASED', margin=0.02)
         bpy.ops.mesh.select_all(action='DESELECT')
 
@@ -92,6 +91,21 @@ class Seams_To_SewingPattern(Operator):
                 e.select = True
 
         function_wrapper.do_bevel()
+
+
+        for e in list(filter(lambda e: e.select, bm.edges)):
+            e.seam = True
+
+        for e in list(filter(lambda e: e.is_wire, bm.edges)):
+            e.seam = False
+
+        #####
+        '''
+        error now because I need to fix the fact that fanning edges dont exist anymore
+        maybe by finding ngons instead?
+        or removing doubled afer
+        '''
+        #####
 
         #fix fanning seams
         degenerate_edges = list()
@@ -139,12 +153,12 @@ class Seams_To_SewingPattern(Operator):
         
         progress = 0
 
-        avg_area_ratio = 0
+        area_before = 0
+        area_after = 0
             
         for g in faceGroups:
             progress += 1
             wm.progress_update((progress / len(faceGroups)))
-            previous_area = 0
             bpy.ops.mesh.select_mode(type='FACE')
             bpy.ops.mesh.select_all(action='DESELECT')
             average_position = mathutils.Vector((0,0,0))
@@ -154,7 +168,7 @@ class Seams_To_SewingPattern(Operator):
             
             for f in g:
                 f.select = True
-                previous_area += f.calc_area()
+                area_before += f.calc_area()
                 average_position += f.calc_center_median()
                 facenum += 1
             
@@ -212,21 +226,18 @@ class Seams_To_SewingPattern(Operator):
                     vert.co = pos;
             
             bmesh.update_edit_mesh(me, False)
-            
-            #resize to match previous area
-            
-            new_area = sum(f.calc_area() for f in g)
-            
-            area_ratio = previous_area / new_area
-            area_ratio = math.sqrt(area_ratio)
-            avg_area_ratio += area_ratio
-            bpy.ops.transform.resize(value=(area_ratio, area_ratio, area_ratio))
+            area_after += sum(f.calc_area() for f in g)
             
         # done
 
-        avg_area_ratio /= len(faceGroups)
+        area_ratio = math.sqrt(area_before / area_after)
+        bpy.ops.mesh.select_all(action='SELECT')
+        previous_pivot = bpy.context.scene.tool_settings.transform_pivot_point
+        bpy.context.scene.tool_settings.transform_pivot_point = 'INDIVIDUAL_ORIGINS'
+        bpy.ops.transform.resize(value=(area_ratio, area_ratio, area_ratio))
+        bpy.context.scene.tool_settings.transform_pivot_point = previous_pivot
 
-        obj["S2S_UVtoWORLDscale"] = avg_area_ratio
+        obj["S2S_UVtoWORLDscale"] = area_ratio
             
         bmesh.update_edit_mesh(me, False)
         bpy.ops.mesh.select_all(action='SELECT') 
