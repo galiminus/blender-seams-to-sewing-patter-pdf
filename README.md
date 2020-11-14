@@ -1,6 +1,8 @@
 # blender Seams to Sewing pattern
 
-A add-on for Blender 2.8 and 2.9 that assists with setting up 2D sewing patterns from 3D models, for cloth simulation and real-life sewing.
+An add-on for Blender 2.8 and 2.9 that assists with setting up 2D sewing patterns from 3D models, for cloth simulation and real-life sewing.
+
+![](https://blenderartists.org/uploads/default/optimized/4X/3/7/9/379d4a76a9022a7ff338773500784e22500dd8f6_2_690x207.jpeg)
 
 # installation
 Download the **Stable** archive here:\
@@ -24,3 +26,11 @@ Exports your sewing pattern to a .SVG file for printing and sewing in real life.
 
 `Edge > Clean up Knife Cut`\
 Clean up selected edges after you used the knife tool on a mesh
+
+# reporting issues
+Something wrong? Please let me know.
+
+There's a Blender Artists thread here: https://blenderartists.org/t/1248713 \
+You can also add an issue here on GitLab,\
+or get in touch with me otherwise: \
+http://www.thomaskole.nl
