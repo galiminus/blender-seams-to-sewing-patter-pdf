@@ -13,7 +13,7 @@ import mathutils
 import random
 
 class Export_Sewingpattern(bpy.types.Operator):
-    """Export Sewingpattern"""
+    """Export Sewingpattern to .SVG file format. This should be called after the Seams to Sewing Pattern operator"""
 
     bl_idname = "object.export_sewingpattern"
     bl_label = "Export Sewing Pattern"

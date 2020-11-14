@@ -34,11 +34,6 @@ class Seams_To_SewingPattern(Operator):
         description="Actual number of triangle migh be a bit off",
         default=5000,
     )
-    do_calc_volume: BoolProperty(
-        name="Calculate and store Volume",
-        description="Calculate the mesh's volume and store in custom object data\nThis can be used in the clothsim's \"target volume\" property",
-        default=True,
-    )
 
     def invoke(self, context, event):
         wm = context.window_manager
@@ -46,8 +41,6 @@ class Seams_To_SewingPattern(Operator):
 
     def draw(self, context):
         layout = self.layout
-        row = layout.row()
-        row.prop(self, "do_calc_volume")
         row = layout.row()
         row.prop(self, "use_remesh")
         row = layout.row()
@@ -92,13 +85,6 @@ class Seams_To_SewingPattern(Operator):
 
         function_wrapper.do_bevel()
 
-
-        for e in list(filter(lambda e: e.select, bm.edges)):
-            e.seam = True
-
-        for e in list(filter(lambda e: e.is_wire, bm.edges)):
-            e.seam = False
-
         #####
         '''
         error now because I need to fix the fact that fanning edges dont exist anymore
@@ -118,6 +104,10 @@ class Seams_To_SewingPattern(Operator):
                         vert_degenerate = False
                 if vert_degenerate:
                     is_degenerate = True
+
+            for e in f.edges:
+                if e.is_boundary:
+                    is_degenerate = False;
 
             if is_degenerate:
                 for e in f.edges:
@@ -240,7 +230,9 @@ class Seams_To_SewingPattern(Operator):
         obj["S2S_UVtoWORLDscale"] = area_ratio
             
         bmesh.update_edit_mesh(me, False)
-        bpy.ops.mesh.select_all(action='SELECT') 
+        bpy.ops.mesh.select_all(action='SELECT')
+
+        bpy.ops.mesh.remove_doubles(threshold=0.0004, use_unselected=False)
 
         if (self.use_remesh):
             bpy.ops.mesh.dissolve_limited(angle_limit=0.01)
