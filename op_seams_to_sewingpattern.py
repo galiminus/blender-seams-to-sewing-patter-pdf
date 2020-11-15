@@ -24,6 +24,16 @@ class Seams_To_SewingPattern(Operator):
     bl_description = "Converts a manifold mesh with seams into a swewing pattern for cloth simulation"
     bl_options = {'REGISTER', 'UNDO'}
     
+    do_unwrap: EnumProperty(
+        name="Unwrap",
+        description="Perform an unwrap before unfolding. Identical to UV > Unwrap",
+        items=(
+            ('KEEP', "Keep existing", ""),
+            ('ANGLE_BASED', "Angle based", ""),
+            ('CONFORMAL', "Conformal", ""),
+        ),
+        default='ANGLE_BASED',
+    )
     use_remesh: BoolProperty(
         name="Remesh",
         description="Use Boundary Aligned Remesh to remesh",
@@ -42,6 +52,8 @@ class Seams_To_SewingPattern(Operator):
     def draw(self, context):
         layout = self.layout
         row = layout.row()
+        row.prop(self, "do_unwrap")
+        row = layout.row()
         row.prop(self, "use_remesh")
         row = layout.row()
         row.prop(self, "target_tris")
@@ -58,7 +70,8 @@ class Seams_To_SewingPattern(Operator):
         bpy.ops.mesh.select_mode(type="EDGE")
 
         bpy.ops.mesh.select_all(action='SELECT')
-        bpy.ops.uv.unwrap(method='ANGLE_BASED', margin=0.02)
+        if (self.do_unwrap != 'KEEP'):
+            bpy.ops.uv.unwrap(method=self.do_unwrap, margin=0.02)
         bpy.ops.mesh.select_all(action='DESELECT')
 
         bm = bmesh.from_edit_mesh(me)
