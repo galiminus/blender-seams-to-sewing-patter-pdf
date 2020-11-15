@@ -119,7 +119,7 @@ class BoundaryAlignedRemesher:
             if location:
                 vert.co = location
     
-    def remesh(self,edge_length=0.05, iterations=30, quads=True):
+    def remesh(self,edge_length=0.05, iterations=30, quads=True, reproject=True):
         wm = bpy.context.window_manager
         wm.progress_begin(0, 99)
 
@@ -133,7 +133,8 @@ class BoundaryAlignedRemesher:
             wm.progress_update(i/iterations)
             self.enforce_edge_length(edge_length=edge_length)
             self.align_verts(rule=rule)
-            self.reproject()
+            if reproject:
+                self.reproject()
         
         if quads:
             bmesh.ops.join_triangles(self.bm, faces=self.bm.faces,
@@ -162,13 +163,18 @@ class Remesher(bpy.types.Operator):
         name="Quads",
         default=False
     )
+
+    reproject: bpy.props.BoolProperty(
+        name="Reproject",
+        default=True
+    )
     
     def execute(self, context):
         obj = bpy.context.active_object
         print(f"Remeshing {obj.name}")
         
         remesher = BoundaryAlignedRemesher(obj)
-        bm = remesher.remesh(self.edge_length, self.iterations, self.quads)
+        bm = remesher.remesh(self.edge_length, self.iterations, self.quads, self.reproject)
         bm.to_mesh(obj.data)
         context.area.tag_redraw()
         return {"FINISHED"}
