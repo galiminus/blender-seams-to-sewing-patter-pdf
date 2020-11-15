@@ -6,14 +6,11 @@ An add-on for Blender 2.8 and 2.9 that assists with setting up 2D sewing pattern
 ![](https://gitlab.com/thomaskole/blender-seams-to-sewing-pattern/-/wikis/uploads/2364f88e60b43cf0cc44309c2e4f15be/triceratops.gif)
 
 # installation
-Download the **Stable** archive here:\
+Download the archive here:\
 https://gitlab.com/thomaskole/blender-seams-to-sewing-pattern/-/archive/master/blender-seams-to-sewing-pattern-master.zip
 
-Or the **Experimental** archive here:\
-https://gitlab.com/thomaskole/blender-seams-to-sewing-pattern/-/archive/work_in_progress/blender-seams-to-sewing-pattern-work_in_progress.zip
-
 In Blender, go to `Edit > ⚙️ Preferences > Install..` and select the zip file you just downloaded.\
-Enable the add-on in the list
+Enable the add-on in the list.
 
 # very brief overview:
 `Object > Seams to Sewing Pattern > Seams to Sewing Pattern`\
@@ -48,3 +45,11 @@ Disable the remesh option and see where it goes wrong in your mesh / UV'seams
 **My mesh is imploding on itself during clothsim**\
 Yeah, clothsim... Try balancing the "pressure" and "sewing force".\
 It can help to keyframe the "pressure" to something very high on frame 1 and decrease over time.
+
+# responsibility 🌱
+
+The production of natural textiles often involve overuse of water, fertilizers and perticides.\
+Synthetic textiles are a large, often overlooked source of plastic pollution.\
+The textile industry is often associated with unethical work conditions.
+
+If you wish to use this add-on for real-life sewing purposes, I ask of you to use only sustainable / second-hand fabrics.
