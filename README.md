@@ -35,3 +35,16 @@ There's a Blender Artists thread here: https://blenderartists.org/t/1248713 \
 You can also add an issue here on GitLab,\
 or get in touch with me otherwise: \
 http://www.thomaskole.nl
+
+# troubleshooting
+
+**I'm getting a python error**\
+That's bad, please let me know the error and how you triggered it.
+
+**After unfolding, there's some weird long triangles /strips flying out**\
+Most likely some non-manifold geometry, overlapping vertices, or bad normals.\
+Disable the remesh option and see where it goes wrong in your mesh / UV'seams
+
+**My mesh is imploding on itself during clothsim**\
+Yeah, clothsim... Try balancing the "pressure" and "sewing force".\
+It can help to keyframe the "pressure" to something very high on frame 1 and decrease over time.
