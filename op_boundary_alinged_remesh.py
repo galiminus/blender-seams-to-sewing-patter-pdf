@@ -87,7 +87,7 @@ class BoundaryAlignedRemesher:
                 collapse.append(edge)
                 lock_verts |= verts
         
-        bmesh.ops.collapse(self.bm, edges=collapse)
+        bmesh.ops.collapse(self.bm, edges=collapse, uvs=True)
         bmesh.ops.beautify_fill(self.bm, faces=self.bm.faces, method="ANGLE")
     
     def align_verts(self, rule=(-1, -2, -3, -4)):

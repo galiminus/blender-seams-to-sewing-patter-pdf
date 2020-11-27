@@ -133,8 +133,6 @@ class CleanUpEdges(bpy.types.Operator):
 
         fake_vert_list = []
         fake_vert_list.extend(fake_verts.values())
-        for fv in fake_vert_list:
-            print(fv)
 
         fake_edges = []
         for e in edges:
@@ -178,8 +176,6 @@ class CleanUpEdges(bpy.types.Operator):
         bpy.ops.mesh.remove_doubles(threshold=0.0001)
         bm = bmesh.from_edit_mesh(bpy.context.active_object.data)
 
-        print(len(edges))
-
         selection = list(filter(lambda e: e.select, bm.edges))
 
         for _ in range(self.relax_iterations):
@@ -218,8 +214,6 @@ class CleanUpEdges(bpy.types.Operator):
             if not(v.is_boundary and self.delimit_boundary):
                 verts_to_smooth.append(v)
 
-        print(len(verts_to_smooth))
-
         for e in selection:
             for v in e.verts:
                 while v in verts_to_smooth:
@@ -231,8 +225,6 @@ class CleanUpEdges(bpy.types.Operator):
 
         for x in range(10):
             bmesh.ops.smooth_vert(bm, verts=verts_to_smooth, factor= smoothing_factor, use_axis_x=True, use_axis_y=True, use_axis_z=True)
-            print("smooth")
-
 
         bmesh.update_edit_mesh(obj.data, loop_triangles=True, destructive=True)
 
