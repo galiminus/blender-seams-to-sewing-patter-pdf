@@ -1,6 +1,6 @@
 # blender Seams to Sewing pattern
 
-An add-on for Blender 2.8 and 2.9 that assists with setting up 2D sewing patterns from 3D models, for cloth simulation and real-life sewing.
+An add-on for Blender 2.8x and 2.9x that assists with setting up 2D sewing patterns from 3D models, for cloth simulation and real-life sewing.
 
 ![](https://blenderartists.org/uploads/default/optimized/4X/3/7/9/379d4a76a9022a7ff338773500784e22500dd8f6_2_690x207.jpeg)
 ![](https://gitlab.com/thomaskole/blender-seams-to-sewing-pattern/-/wikis/uploads/2364f88e60b43cf0cc44309c2e4f15be/triceratops.gif)
