@@ -53,3 +53,7 @@ Synthetic textiles are a large, often overlooked source of plastic pollution.\
 The textile industry is often associated with unethical work conditions.
 
 If you wish to use this add-on for real-life sewing purposes, I ask of you to use only sustainable / second-hand fabrics.
+
+# known issues
+
+- UV's are messed up after Remesh
