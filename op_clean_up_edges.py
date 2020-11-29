@@ -27,37 +27,53 @@ class CleanUpEdges(bpy.types.Operator):
 
 
     remove_poles_beforehand: BoolProperty(
+        name="Remove poles",
+        description="Remove poles directly neighboring selected edge",
         default=True
     )
     delimit_boundary: BoolProperty(
+        name="Delimit Boundary",
+        description="Ignore mesh boundary (except selected)",
         default=True
     )
     delimit_existing_seams: BoolProperty(
+        name="Delimit Seams",
+        description="Ignore mesh seams (except selected)",
         default=True
     )
     delimit_intersections: BoolProperty(
+        name="Delimit Intersections",
+        description="Don't clean up selected edges that cross paths",
         default=True
     )
 
     min_length: FloatProperty(
+        name="Min Edge Length",
+        description="Edges below this length will disappear",
         default=0.02,
         min=0,
         soft_max=0.5
     )
 
+    '''
     relax_iterations: IntProperty(
         default=0,
         min=0,
         soft_max=20
     )
+    '''
 
     neighbor_selection_radius: IntProperty(
+        name="Neighbor Relax Radius",
+        description="Relax this many neighboring vertices",
         default=1,
         min=1,
         soft_max=20
     )
 
     neighbor_smooth_factor: FloatProperty(
+        name="Neighbor Relax",
+        description="Relax neighboring vertices by this much",
         default=0.5,
         min=0,
         max=1
@@ -81,11 +97,13 @@ class CleanUpEdges(bpy.types.Operator):
             selected_verts = list(filter(lambda v: v.select, bm.verts))
             bpy.ops.mesh.select_more(use_face_step=True)
             neighboring_verts = list(filter(lambda v: v.select, bm.verts))
+            bpy.ops.mesh.select_mode(type="VERT")
             bpy.ops.mesh.region_to_loop()
             boundary_verts = list(filter(lambda v: v.select, bm.verts))
             invalid_verts = list((set(neighboring_verts) - set(boundary_verts)) - set(selected_verts))
             bmesh.ops.dissolve_verts(bm, verts=invalid_verts)
             bpy.ops.mesh.select_all(action='DESELECT')
+            bpy.ops.mesh.select_mode(type="EDGE")
             for e in selection:
                 e.select = True
 
@@ -178,6 +196,7 @@ class CleanUpEdges(bpy.types.Operator):
 
         selection = list(filter(lambda e: e.select, bm.edges))
 
+        '''
         for _ in range(self.relax_iterations):
             verts = list(filter(lambda v: v.select, bm.verts))
             locations = dict()
@@ -195,6 +214,7 @@ class CleanUpEdges(bpy.types.Operator):
                         avg_pos += locations[n]
                     avg_pos /= len(neighbors)
                     v.co = v.co.lerp(avg_pos, 0.2)
+        '''
 
         for _ in range(self.neighbor_selection_radius):
             bpy.ops.mesh.select_more(use_face_step=True)
