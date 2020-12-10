@@ -1,12 +1,12 @@
 bl_info = {
         'name': 'Seams to Sewing Pattern',
         'author': 'Thomas Kole',
-        'version': (0, 7),
+        'version': (0, 9),
         'blender': (2, 80, 0),
         'category': 'Cloth',
         'description': 'Converts a mesh with seams into sewing patterns with sewing edges',
         'location': 'Object > Seams to Sewing Pattern > ...',
-        'wiki_url': 'https://blenderartists.org/t/seams-to-sewing-pattern-v-0-5-for-2-8-and-2-9/1248713'}
+        'wiki_url': 'https://blenderartists.org/t/1248713'}
 
 if "bpy" in locals():
     import importlib
