@@ -3,7 +3,6 @@
 An add-on for Blender 2.8x and 2.9x that assists with setting up 2D sewing patterns from 3D models, for cloth simulation and real-life sewing.
 
 ![](https://blenderartists.org/uploads/default/optimized/4X/3/7/9/379d4a76a9022a7ff338773500784e22500dd8f6_2_690x207.jpeg)
-![](https://gitlab.com/thomaskole/blender-seams-to-sewing-pattern/-/wikis/uploads/2364f88e60b43cf0cc44309c2e4f15be/triceratops.gif)
 
 # installation
 Download the archive here:\
@@ -13,6 +12,8 @@ In Blender, go to `Edit > ⚙️ Preferences > Install..` and select the zip fil
 Enable the add-on in the list.
 
 # very brief overview:
+![](https://gitlab.com/thomaskole/blender-seams-to-sewing-pattern/-/wikis/uploads/2364f88e60b43cf0cc44309c2e4f15be/triceratops.gif)
+
 `Object > Seams to Sewing Pattern > Seams to Sewing Pattern`\
 turns your mesh into a sewing patten based on it's UV layout.
 
