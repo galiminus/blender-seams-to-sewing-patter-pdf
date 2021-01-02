@@ -2,7 +2,9 @@
 
 An add-on for Blender 2.8x and 2.9x that assists with setting up 2D sewing patterns from 3D models, for cloth simulation and real-life sewing.
 
-![](https://blenderartists.org/uploads/default/optimized/4X/3/7/9/379d4a76a9022a7ff338773500784e22500dd8f6_2_690x207.jpeg)
+![](https://blenderartists.org/uploads/default/optimized/4X/3/7/9/379d4a76a9022a7ff338773500784e22500dd8f6_2_690x207.jpeg)\
+[![](https://img.youtube.com/vi/EZr__pTxsKk/mqdefault.jpg)\
+▶ Quick guide on youtube](https://www.youtube.com/watch?v=EZr__pTxsKk)
 
 # installation
 Download the archive here:\
