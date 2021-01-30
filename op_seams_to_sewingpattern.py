@@ -28,9 +28,9 @@ class Seams_To_SewingPattern(Operator):
         name="Unwrap",
         description="Perform an unwrap before unfolding. Identical to UV > Unwrap",
         items=(
-            ('KEEP', "Keep existing", ""),
             ('ANGLE_BASED', "Angle based", ""),
             ('CONFORMAL', "Conformal", ""),
+            ('KEEP', "Keep existing (advanced)", ""),
         ),
         default='ANGLE_BASED',
     )
@@ -47,17 +47,29 @@ class Seams_To_SewingPattern(Operator):
 
     def invoke(self, context, event):
         wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=200)
+        return wm.invoke_props_dialog(self, width=250)
 
     def draw(self, context):
         layout = self.layout
         row = layout.row()
+        row.label(text="Unfolds this mesh by cutting along seams.", icon='INFO')
+        layout.separator()
+        layout.row()
+        layout.row()
+        row = layout.row()
         row.prop(self, "do_unwrap")
+        if(self.do_unwrap == 'KEEP'):
+            row = layout.row()
+            row.alignment = 'EXPAND'
+            row.label(text="Ensure your seams match your UV's!", icon='EDGESEL')
+
+        layout.row()
         row = layout.row()
         row.prop(self, "use_remesh")
         row = layout.row()
         row.prop(self, "target_tris")
         row.enabled = self.use_remesh
+        layout.row()
 
     def execute(self, context):
         wm = bpy.context.window_manager
