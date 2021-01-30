@@ -174,7 +174,11 @@ class Remesher(bpy.types.Operator):
         print(f"Remeshing {obj.name}")
         
         remesher = BoundaryAlignedRemesher(obj)
-        bm = remesher.remesh(self.edge_length, self.iterations, self.quads, self.reproject)
+        try:
+            bm = remesher.remesh(self.edge_length, self.iterations, self.quads, self.reproject)
+        except:
+            self.report({'ERROR'}, "Remeshing failed, probably because there is a piece that can't be flattened out.\nThat usually means there are seams missing from a piece.")
+            return {'CANCELLED'}
         bm.to_mesh(obj.data)
         context.area.tag_redraw()
         return {"FINISHED"}

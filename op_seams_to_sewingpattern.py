@@ -91,10 +91,16 @@ class Seams_To_SewingPattern(Operator):
 
             self.ensure_edgelength(max_edge_length * 0.8, bm, wm) #A bias to compensate for stretching
 
+        warn_any_seam = False
 
         for e in bm.edges:
             if e.seam:
                 e.select = True
+                warn_any_seam = True
+
+        if not warn_any_seam:
+            self.report({'ERROR'}, 'There are no seams in this mesh. Please add seams where you want to cut the model.')
+            return {'CANCELLED'}
 
         function_wrapper.do_bevel()
 
