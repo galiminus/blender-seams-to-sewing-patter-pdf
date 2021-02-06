@@ -49,13 +49,21 @@ Disable the remesh option and see where it goes wrong in your mesh / UV'seams
 Yeah, clothsim... Try balancing the "pressure" and "sewing force".\
 It can help to keyframe the "pressure" to something very high on frame 1 and decrease over time.
 
-# responsibility 🌱
+# license
+
+GPL V2:\
+[GPL-license.txt](./GPL-license.txt)
+
+# sustainability and ethics 🌱
 
 The production of natural textiles often involve overuse of water, fertilizers and perticides.\
 Synthetic textiles are a large, often overlooked source of plastic pollution.\
 The textile industry is often associated with unethical work conditions.
 
 If you wish to use this add-on for real-life sewing purposes, I ask of you to use only sustainable / second-hand fabrics.
+
+See also:\
+[Sustainability-and-Ethics-notice.txt](./Sustainability-and-Ethics-notice.txt)
 
 # known issues
 
