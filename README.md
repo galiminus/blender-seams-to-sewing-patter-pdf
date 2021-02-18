@@ -60,7 +60,7 @@ The production of natural textiles often involve overuse of water, fertilizers a
 Synthetic textiles are a large, often overlooked source of plastic pollution.\
 The textile industry is often associated with unethical work conditions.
 
-If you wish to use this add-on for real-life sewing purposes, I ask of you to use only sustainable / second-hand fabrics.
+If you wish to use this add-on for real-life sewing purposes, I ask of you to use only sustainable / second-hand fabrics, and fair labour.
 
 See also:\
 [Sustainability-and-Ethics-notice.txt](./Sustainability-and-Ethics-notice.txt)
