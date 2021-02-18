@@ -8,7 +8,7 @@ the usage of it might inadvertently contribute to:
 - Climate change.
 
 These issues are important to me, the developer, so if you, the
-reader of this notice, think that your end use contributes to one
-of these, I ask you or your organisation not to use this add-on.
+reader of this notice, think that your end use contributes to one of
+these issues, I ask you or your organisation not to use this add-on.
 
 Thank you for understanding.
