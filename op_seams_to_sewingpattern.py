@@ -34,14 +34,19 @@ class Seams_To_SewingPattern(Operator):
         ),
         default='ANGLE_BASED',
     )
+    keep_original: BoolProperty(
+        name="Work on duplicate",
+        description="Creates a duplicate of the selected object and operates on that instead. This keeps your original object intact.",
+        default=True,
+    )
     use_remesh: BoolProperty(
         name="Remesh",
         description="Use Boundary Aligned Remesh to remesh",
         default=True,
     )
-    keep_original: BoolProperty(
-        name="Keep Original Mesh",
-        description="Keeps the original mesh and operate on a duplicate.",
+    apply_modifiers: BoolProperty(
+        name="Apply modifiers",
+        description="Applies all modifiers before operating.",
         default=True,
     )
     target_tris: IntProperty(
@@ -70,8 +75,11 @@ class Seams_To_SewingPattern(Operator):
 
         layout.row()
         row = layout.row()
-        row.prop(self, "use_remesh")
         row.prop(self, "keep_original")
+        row = layout.row()
+        row.prop(self, "apply_modifiers")
+        row = layout.row()
+        row.prop(self, "use_remesh")
         row = layout.row()
         row.prop(self, "target_tris")
         row.enabled = self.use_remesh
@@ -89,6 +97,10 @@ class Seams_To_SewingPattern(Operator):
             obj.select_set(True)
             src_obj.select_set(False)
             bpy.context.view_layer.objects.active = obj
+            
+        if self.apply_modifiers:
+            bpy.ops.object.convert(target='MESH')
+            obj = bpy.context.active_object
 
         wm = bpy.context.window_manager
         bpy.ops.object.mode_set(mode='EDIT')
