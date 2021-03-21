@@ -39,6 +39,11 @@ class Seams_To_SewingPattern(Operator):
         description="Use Boundary Aligned Remesh to remesh",
         default=True,
     )
+    keep_original: BoolProperty(
+        name="Keep Original Mesh",
+        description="Keeps the original mesh and operate on a duplicate.",
+        default=True,
+    )
     target_tris: IntProperty(
         name="Target number of triangles",
         description="Actual number of triangle migh be a bit off",
@@ -66,12 +71,25 @@ class Seams_To_SewingPattern(Operator):
         layout.row()
         row = layout.row()
         row.prop(self, "use_remesh")
+        row.prop(self, "keep_original")
         row = layout.row()
         row.prop(self, "target_tris")
         row.enabled = self.use_remesh
         layout.row()
 
     def execute(self, context):
+        if self.keep_original:
+            # Duplicate selection to keep original.
+            src_obj = bpy.context.active_object
+            obj = src_obj.copy()
+            obj.data = src_obj.data.copy()
+            obj.animation_data_clear()
+            bpy.context.collection.objects.link(obj)
+
+            obj.select_set(True)
+            src_obj.select_set(False)
+            bpy.context.view_layer.objects.active = obj
+
         wm = bpy.context.window_manager
         bpy.ops.object.mode_set(mode='EDIT')
 
