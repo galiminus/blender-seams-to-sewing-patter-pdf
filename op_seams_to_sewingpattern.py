@@ -5,28 +5,31 @@ import bmesh
 import mathutils
 import math
 from bpy.props import (
-        StringProperty,
-        BoolProperty,
-        IntProperty,
-        FloatProperty,
-        FloatVectorProperty,
-        EnumProperty,
-        )
+    BoolProperty,
+    IntProperty,
+    EnumProperty,
+)
 
 if bpy.app.version >= (2, 90, 0):
     from . import function_wrapper_2_9 as function_wrapper
 else:
     from . import function_wrapper_2_8 as function_wrapper
 
+
 class Seams_To_SewingPattern(Operator):
     bl_idname = "object.seams_to_sewingpattern"
     bl_label = "Seams to Sewing Pattern"
-    bl_description = "Converts a manifold mesh with seams into a swewing pattern for cloth simulation"
+    bl_description = (
+        "Converts a manifold mesh with seams into a swewing pattern for cloth"
+        " simulation"
+    )
     bl_options = {'REGISTER', 'UNDO'}
-    
+
     do_unwrap: EnumProperty(
         name="Unwrap",
-        description="Perform an unwrap before unfolding. Identical to UV > Unwrap",
+        description=(
+            "Perform an unwrap before unfolding. Identical to UV > Unwrap"
+        ),
         items=(
             ('ANGLE_BASED', "Angle based", ""),
             ('CONFORMAL', "Conformal", ""),
@@ -36,7 +39,10 @@ class Seams_To_SewingPattern(Operator):
     )
     keep_original: BoolProperty(
         name="Work on duplicate",
-        description="Creates a duplicate of the selected object and operates on that instead. This keeps your original object intact.",
+        description=(
+            "Creates a duplicate of the selected object and operates on that"
+            " instead. This keeps your original object intact."
+        ),
         default=True,
     )
     use_remesh: BoolProperty(
@@ -62,7 +68,9 @@ class Seams_To_SewingPattern(Operator):
     def draw(self, context):
         layout = self.layout
         row = layout.row()
-        row.label(text="Unfolds this mesh by cutting along seams.", icon='INFO')
+        row.label(
+            text="Unfolds this mesh by cutting along seams.", icon='INFO'
+        )
         layout.separator()
         layout.row()
         layout.row()
@@ -71,7 +79,9 @@ class Seams_To_SewingPattern(Operator):
         if(self.do_unwrap == 'KEEP'):
             row = layout.row()
             row.alignment = 'EXPAND'
-            row.label(text="Ensure your seams match your UV's!", icon='EDGESEL')
+            row.label(
+                text="Ensure your seams match your UV's!", icon='EDGESEL'
+            )
 
         layout.row()
         row = layout.row()
@@ -97,14 +107,13 @@ class Seams_To_SewingPattern(Operator):
             obj.select_set(True)
             src_obj.select_set(False)
             bpy.context.view_layer.objects.active = obj
-            
+
         if self.apply_modifiers:
             bpy.ops.object.convert(target='MESH')
             obj = bpy.context.active_object
 
         wm = bpy.context.window_manager
         bpy.ops.object.mode_set(mode='EDIT')
-
 
         obj = bpy.context.edit_object
         me = obj.data
@@ -122,8 +131,8 @@ class Seams_To_SewingPattern(Operator):
 
         bmesh.update_edit_mesh(me, False)
 
-        #calculate edge length based on a surface of equilateral triangles
-        
+        # Calculate edge length based on a surface of equilateral triangles.
+
         if (self.use_remesh):
             current_area = sum(f.calc_area() for f in bm.faces)
             target_triangle_count = self.target_tris
@@ -131,7 +140,8 @@ class Seams_To_SewingPattern(Operator):
 
             max_edge_length = math.sqrt(area_per_triangle/(math.sqrt(3)/4))
 
-            self.ensure_edgelength(max_edge_length * 0.8, bm, wm) #A bias to compensate for stretching
+            # A bias to compensate for stretching.
+            self.ensure_edgelength(max_edge_length * 0.8, bm, wm)
 
         warn_any_seam = False
 
@@ -141,20 +151,26 @@ class Seams_To_SewingPattern(Operator):
                 warn_any_seam = True
 
         if not warn_any_seam:
-            self.report({'ERROR'}, 'There are no seams in this mesh. Please add seams where you want to cut the model.')
+            self.report(
+                {'ERROR'},
+                (
+                    'There are no seams in this mesh. Please add seams where'
+                    ' you want to cut the model.'
+                )
+            )
             return {'CANCELLED'}
 
         function_wrapper.do_bevel()
 
         #####
         '''
-        error now because I need to fix the fact that fanning edges dont exist anymore
-        maybe by finding ngons instead?
+        error now because I need to fix the fact that fanning edges dont exist
+        anymore maybe by finding ngons instead?
         or removing doubled afer
         '''
         #####
 
-        #fix fanning seams
+        # fix fanning seams
         degenerate_edges = list()
         for f in list(filter(lambda f: (f.select), bm.faces)):
             is_degenerate = False
@@ -168,13 +184,13 @@ class Seams_To_SewingPattern(Operator):
 
             for e in f.edges:
                 if e.is_boundary:
-                    is_degenerate = False;
+                    is_degenerate = False
 
             if is_degenerate:
                 for e in f.edges:
                     degenerate_edges.append(e)
 
-        bmesh.ops.collapse(bm, edges = degenerate_edges, uvs = True)
+        bmesh.ops.collapse(bm, edges=degenerate_edges, uvs=True)
 
         bpy.ops.mesh.delete(type='ONLY_FACE')
 
@@ -187,109 +203,119 @@ class Seams_To_SewingPattern(Operator):
         wm.progress_begin(0, 99)
         progress_max = len(faces)
         progress = 0
-        while faces:    
-            bpy.ops.mesh.select_all(action='DESELECT')  
-            face = faces.pop() 
+        while faces:
+            bpy.ops.mesh.select_all(action='DESELECT')
+            face = faces.pop()
             face.select = True
             bpy.ops.mesh.select_linked()
             selected_faces = {f for f in faces if f.select}
-            selected_faces.add(face) # this or bm.faces above?
+            selected_faces.add(face)  # this or bm.faces above?
             faceGroups.append(selected_faces)
             faces -= selected_faces
-            
+
             progress += len(selected_faces)
             wm.progress_update((progress / progress_max))
 
         uv_layer = bm.loops.layers.uv.active
-        
+
         progress = 0
 
         area_before = 0
         area_after = 0
-            
+
         for g in faceGroups:
             progress += 1
             wm.progress_update((progress / len(faceGroups)))
             bpy.ops.mesh.select_mode(type='FACE')
             bpy.ops.mesh.select_all(action='DESELECT')
-            average_position = mathutils.Vector((0,0,0))
+            average_position = mathutils.Vector((0, 0, 0))
             facenum = 0
-            
+
             # calculate the area, average position
-            
+
             for f in g:
                 f.select = True
                 area_before += f.calc_area()
                 average_position += f.calc_center_median()
                 facenum += 1
-            
+
             average_position /= facenum
 
-            average_tangent = mathutils.Vector((0,0,0))
-            average_bitangent = mathutils.Vector((0,0,0))
+            average_tangent = mathutils.Vector((0, 0, 0))
+            average_bitangent = mathutils.Vector((0, 0, 0))
 
             # calculate a rough tangent and a bitangent
 
-            average_uv_position = mathutils.Vector((0,0))
+            average_uv_position = mathutils.Vector((0, 0))
             uv_position_samples = 0
 
             for face in g:
-                for loop in face.loops:       
+                for loop in face.loops:
                     uv = loop[uv_layer].uv
                     uv_position_samples += 1
                     average_uv_position += uv
                     delta = loop.vert.co - average_position
                     average_tangent += delta * (uv.x - 0.5)
                     average_bitangent += delta * (uv.y - 0.5)
-                    
+
             # reorient the tangent and bitangent
-            
+
             average_uv_position /= uv_position_samples
             average_tangent = average_tangent.normalized()
             average_bitangent = average_bitangent.normalized()
-            average_normal = average_tangent.cross(average_bitangent).normalized()
+            average_normal = average_tangent.cross(
+                average_bitangent
+            ).normalized()
             halfvector = average_bitangent + average_tangent
             halfvector /= 2
             halfvector.normalize()
-            #straighten out half vector
+            # straighten out half vector
             halfvector = average_normal.cross(halfvector)
             halfvector = average_normal.cross(halfvector)
-            cw = mathutils.Matrix.Rotation(math.radians(45.0), 4, average_normal)
-            ccw = mathutils.Matrix.Rotation(math.radians(-45.0), 4, average_normal)
-            
+            cw = mathutils.Matrix.Rotation(
+                math.radians(45.0), 4, average_normal
+            )
+            ccw = mathutils.Matrix.Rotation(
+                math.radians(-45.0), 4, average_normal
+            )
+
             average_tangent = mathutils.Vector(halfvector)
             average_tangent.rotate(ccw)
-            
+
             average_bitangent = mathutils.Vector(halfvector)
             average_bitangent.rotate(cw)
-            
-            # offset each face island by their UV value, using the tangent and bitangent
-                
+
+            # offset each face island by their UV value, using the tangent and
+            # bitangent
+
             for face in g:
-                for loop in face.loops:       
+                for loop in face.loops:
                     uv = loop[uv_layer].uv
                     vert = loop.vert
-                    pos = mathutils.Vector((0,0,0))
+                    pos = mathutils.Vector((0, 0, 0))
                     pos += average_position
                     pos += average_tangent * -(uv.x - average_uv_position.x)
                     pos += average_bitangent * -(uv.y - average_uv_position.y)
-                    pos += average_normal * 0.3 #arbitrary - should probably depend on object scale?
-                    vert.co = pos;
-            
+                    # arbitrary - should probably depend on object scale?
+                    pos += average_normal * 0.3
+                    vert.co = pos
+
             bmesh.update_edit_mesh(me, False)
             area_after += sum(f.calc_area() for f in g)
-            
+
         # done
 
         area_ratio = math.sqrt(area_before / area_after)
         bpy.ops.mesh.select_all(action='SELECT')
         previous_pivot = bpy.context.scene.tool_settings.transform_pivot_point
-        bpy.context.scene.tool_settings.transform_pivot_point = 'INDIVIDUAL_ORIGINS'
+        bpy.context.scene.tool_settings.transform_pivot_point = (
+            'INDIVIDUAL_ORIGINS'
+        )
         bpy.ops.transform.resize(value=(area_ratio, area_ratio, area_ratio))
         bpy.context.scene.tool_settings.transform_pivot_point = previous_pivot
 
         obj["S2S_UVtoWORLDscale"] = area_ratio
-            
+
         bmesh.update_edit_mesh(me, False)
         bpy.ops.mesh.select_all(action='SELECT')
 
@@ -298,18 +324,20 @@ class Seams_To_SewingPattern(Operator):
         if (self.use_remesh):
             bpy.ops.mesh.dissolve_limited(angle_limit=0.01)
             bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
-            bpy.ops.remesh.boundary_aligned_remesh(edge_length = max_edge_length, iterations = 10, reproject = False)
+            bpy.ops.remesh.boundary_aligned_remesh(
+                edge_length=max_edge_length, iterations=10, reproject=False
+            )
 
         bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
-        
+
         wm.progress_end()
 
-        #fix 2.9 wm.progress problem
+        # fix 2.9 wm.progress problem
         bpy.context.window.cursor_set('NONE')
         bpy.context.window.cursor_set('DEFAULT')
 
         return{'FINISHED'}
-    
+
     def ensure_edgelength(self, max_length, mesh, wm):
         seam_edges = list(filter(lambda e: e.seam, mesh.edges))
         edge_groups = defaultdict(list)
@@ -317,16 +345,19 @@ class Seams_To_SewingPattern(Operator):
             edge_groups[math.floor(e.calc_length() / max_length)].append(e)
 
         wm.progress_begin(0, 99)
-        progress = 0;
+        progress = 0
 
-        #A little weird, but by grouping the edges by number of required cuts,
-        #subdivide_edges() can work a lot more effecient
+        # A little weird, but by grouping the edges by number of required cuts,
+        # subdivide_edges() can work a lot more effecient
 
         for eg in edge_groups.values():
             edge_length = eg[0].calc_length()
             wm.progress_update((progress / len(edge_groups)))
-            bmesh.ops.subdivide_edges(mesh, edges=eg, cuts=math.floor(edge_length / max_length))
+            bmesh.ops.subdivide_edges(
+                mesh, edges=eg, cuts=math.floor(edge_length / max_length)
+            )
 
-        bmesh.ops.triangulate(mesh, faces = mesh.faces, quad_method = 'BEAUTY', ngon_method = 'BEAUTY')
-        #done
-
+        bmesh.ops.triangulate(
+            mesh, faces=mesh.faces, quad_method='BEAUTY', ngon_method='BEAUTY'
+        )
+        # done
