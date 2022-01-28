@@ -1,7 +1,7 @@
 bl_info = {
         'name': 'Seams to Sewing Pattern',
         'author': 'Thomas Kole',
-        'version': (0, 9),
+        'version': (1, 0),
         'blender': (2, 80, 0),
         'category': 'Cloth',
         'description': 'Converts a mesh with seams into sewing patterns with sewing edges',
