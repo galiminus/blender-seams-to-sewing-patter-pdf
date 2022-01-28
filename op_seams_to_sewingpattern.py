@@ -12,7 +12,7 @@ from bpy.props import (
 
 if bpy.app.version >= (3, 0, 0):
     from . import function_wrapper_3_0 as function_wrapper
-else if bpy.app.version >= (2, 90, 0):
+elif bpy.app.version >= (2, 90, 0):
     from . import function_wrapper_2_9 as function_wrapper
 else:
     from . import function_wrapper_2_8 as function_wrapper
