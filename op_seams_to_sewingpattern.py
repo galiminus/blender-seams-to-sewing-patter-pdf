@@ -131,7 +131,7 @@ class Seams_To_SewingPattern(Operator):
 
         obj["S2S_InitialVolume"] = bm.calc_volume()
 
-        do_update_edit_mesh(me)
+        function_wrapper.do_update_edit_mesh(me)
 
         # Calculate edge length based on a surface of equilateral triangles.
 
@@ -302,7 +302,7 @@ class Seams_To_SewingPattern(Operator):
                     pos += average_normal * 0.3
                     vert.co = pos
 
-            do_update_edit_mesh(me)
+            function_wrapper.do_update_edit_mesh(me)
             area_after += sum(f.calc_area() for f in g)
 
         # done
@@ -318,7 +318,7 @@ class Seams_To_SewingPattern(Operator):
 
         obj["S2S_UVtoWORLDscale"] = area_ratio
 
-        do_update_edit_mesh(me)
+        function_wrapper.do_update_edit_mesh(me)
         bpy.ops.mesh.select_all(action='SELECT')
 
         bpy.ops.mesh.remove_doubles(threshold=0.0004, use_unselected=False)
