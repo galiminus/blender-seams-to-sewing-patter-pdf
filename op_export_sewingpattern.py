@@ -117,6 +117,8 @@ class Export_Sewingpattern(bpy.types.Operator):
 
         print('Loop groups for sewing pattern export: ' + str(len(face_groups)))
 
+        marker_indexes = {}
+
         for fg in face_groups:
 
             bpy.ops.mesh.select_all(action='DESELECT')
@@ -180,7 +182,6 @@ class Export_Sewingpattern(bpy.types.Operator):
             svgstring += '"/>'
             
             #print markers
-
             for lg in loop_groups:
                 #markers
                 if (self.alignment_markers != 'OFF'):
@@ -189,7 +190,7 @@ class Export_Sewingpattern(bpy.types.Operator):
                         for w in l.vert.link_edges:
                             if w.is_wire and w.seam:
                                 has_wire = True
-                                svgstring += self.add_alignment_marker(l, w, uv_layer, document_scale)
+                                svgstring += self.add_alignment_marker(l, w, uv_layer, document_scale, marker_indexes)
 
             svgstring += '</g>'
 
@@ -200,7 +201,7 @@ class Export_Sewingpattern(bpy.types.Operator):
             
         bpy.ops.object.mode_set(mode='OBJECT')
         
-    def add_alignment_marker(self, loop, wire, uv_layer, document_scale):
+    def add_alignment_marker(self, loop, wire, uv_layer, document_scale, marker_indexes):
         wire_dir = mathutils.Vector((0,0));
         for l in loop.vert.link_edges:
             if (len(l.link_loops) > 0 and len(l.link_faces) == 1):
@@ -236,8 +237,43 @@ class Export_Sewingpattern(bpy.types.Operator):
         returnstring += str((uv1.y - wire_dir.y) * document_scale)
         returnstring += ' '
         returnstring += '"/>\n'  
+
+        # Add here wire index text
+        edge_index = self.get_edge_index(wire)
+        if(edge_index in marker_indexes):
+            wire_index = marker_indexes[edge_index]
+        else:
+            wire_index = len(marker_indexes)
+            marker_indexes[edge_index] = wire_index
+        
+        anchor = ''
+        if(uv1.x - wire_dir.x <= uv1.x + wire_dir.x):
+            anchor = 'text-anchor="end"'
+        baseline = ''
+        if(uv1.y + wire_dir.y <= uv1.y - wire_dir.y):
+            baseline = 'dominant-baseline="hanging"'
+        returnstring += '<text x="'
+        returnstring += str((uv1.x - wire_dir.x) * document_scale)
+        returnstring += '" y="'
+        returnstring += str((uv1.y - wire_dir.y) * document_scale)
+        returnstring += '" class="sewinguidetext" ' + anchor + ' ' + baseline
+        returnstring += ' font-size="' + str(int(0.01 * document_scale))+ 'px">'
+        returnstring += str(wire_index)
+        returnstring += '</text>\n'
         
         return returnstring
+
+    # Get edge index. Edge positionned in a corned touch another wire edge.
+    # So we get the minimal index of all edges in this corner.
+    def get_edge_index(self, wire):
+        def get_vert_wires(v):
+            return [e for e in v.link_edges if e.is_wire and e.seam]
+        linked_edges = get_vert_wires(wire.verts[0]) + get_vert_wires(wire.verts[1])
+        min_index = wire.index
+        for e in linked_edges:
+            if(e.index < min_index):
+                min_index = e.index
+        return min_index
         
     def auto_detect_markers(self):
         bpy.ops.object.mode_set(mode='EDIT')
