@@ -214,7 +214,7 @@ class Export_Sewingpattern(bpy.types.Operator):
         wire_dir.normalize()
         #wire_dir.y *= -1;
         wire_dir.xy = wire_dir.yx
-        wire_dir *= 0.01;
+        wire_dir *= 0.005;
         
         sew_color = mathutils.Color((1,0,0))
         color_hash = (hash(wire))
@@ -232,9 +232,9 @@ class Export_Sewingpattern(bpy.types.Operator):
         returnstring += str((uv1.y + wire_dir.y) * document_scale)
         returnstring += ' '
     
-        returnstring += str((uv1.x - wire_dir.x) * document_scale)
+        returnstring += str((uv1.x) * document_scale)
         returnstring += ','
-        returnstring += str((uv1.y - wire_dir.y) * document_scale)
+        returnstring += str((uv1.y) * document_scale)
         returnstring += ' '
         returnstring += '"/>\n'  
 
@@ -247,15 +247,15 @@ class Export_Sewingpattern(bpy.types.Operator):
             marker_indexes[edge_index] = wire_index
         
         anchor = ''
-        if(uv1.x - wire_dir.x <= uv1.x + wire_dir.x):
+        if(uv1.x - wire_dir.x > uv1.x + wire_dir.x):
             anchor = 'text-anchor="end"'
         baseline = ''
-        if(uv1.y + wire_dir.y <= uv1.y - wire_dir.y):
+        if(uv1.y + wire_dir.y > uv1.y - wire_dir.y):
             baseline = 'dominant-baseline="hanging"'
         returnstring += '<text x="'
-        returnstring += str((uv1.x - wire_dir.x) * document_scale)
+        returnstring += str((uv1.x + wire_dir.x) * document_scale)
         returnstring += '" y="'
-        returnstring += str((uv1.y - wire_dir.y) * document_scale)
+        returnstring += str((uv1.y + wire_dir.y) * document_scale)
         returnstring += '" class="sewinguidetext" ' + anchor + ' ' + baseline
         returnstring += ' font-size="' + str(int(0.01 * document_scale))+ 'px">'
         returnstring += str(wire_index)
@@ -266,13 +266,26 @@ class Export_Sewingpattern(bpy.types.Operator):
     # Get edge index. Edge positionned in a corned touch another wire edge.
     # So we get the minimal index of all edges in this corner.
     def get_edge_index(self, wire):
+
         def get_vert_wires(v):
             return [e for e in v.link_edges if e.is_wire and e.seam]
-        linked_edges = get_vert_wires(wire.verts[0]) + get_vert_wires(wire.verts[1])
+
+        def get_linked_edges(e):
+            return get_vert_wires(e.verts[0]) + get_vert_wires(e.verts[1])
+
+        def get_all_linked_edges(e, linked_edges):
+            for e in get_linked_edges(e):
+                if not e in linked_edges:
+                    linked_edges.append(e)
+                    get_all_linked_edges(e, linked_edges)
+
         min_index = wire.index
-        for e in linked_edges:
+        all_linked_edges = []
+        get_all_linked_edges(wire, all_linked_edges)
+        for e in all_linked_edges:
             if(e.index < min_index):
                 min_index = e.index
+
         return min_index
         
     def auto_detect_markers(self):
