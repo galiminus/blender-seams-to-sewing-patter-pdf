@@ -1,19 +1,31 @@
 import bpy
-from os.path import basename
+from os.path import join, dirname
+import shutil
+import subprocess
 from xml.sax.saxutils import escape
 from bpy.props import (
     StringProperty,
-    BoolProperty,
     EnumProperty,
-    IntVectorProperty,
-    FloatProperty,
+    IntProperty
 )
 import bmesh
 import mathutils
-import random
+import tempfile
+import math
+
+page_formats = {
+    "Letter": (22.0, 28.0),
+    "A6": (10.5, 14.8),
+    "A5": (14.8, 21.0),
+    "A4": (21.0, 29.7),
+    "A3": (29.7, 42.0),
+    "A2": (42.0, 59.4),
+    "A1": (59.4, 84.1),
+    "A0": (84.1, 118.9),
+}
 
 class Export_Sewingpattern(bpy.types.Operator):
-    """Export Sewingpattern to .SVG file format. This should be called after the Seams to Sewing Pattern operator"""
+    """Export Sewingpattern to .SVG or .PDF file format. This should be called after the Seams to Sewing Pattern operator"""
 
     bl_idname = "object.export_sewingpattern"
     bl_label = "Export Sewing Pattern"
@@ -37,12 +49,25 @@ class Export_Sewingpattern(bpy.types.Operator):
     )
     file_format: EnumProperty(
         items=(
-            ('SVG', "Scalable Vector Graphic (.svg)",
-             "Export the sewing pattern to a .SVG file"),
+            ('PDF', "Portable Document Format (.pdf)", "Export the sewing pattern to a .PDF file with the given page size and overlap"),
+            ('SVG', "Scalable Vector Graphic (.svg)", "Export the sewing pattern to a .SVG file"),
         ),
         name="Format",
         description="File format to export the UV layout to",
-        default='SVG',
+        default='PDF',
+    )
+    page_format: EnumProperty(
+        items=(map(lambda page_format: (page_format, f'{page_format} page format', str(page_formats[page_format])), page_formats.keys())),
+        name="PDF Pages format",
+        description="Page format of the PDF file",
+        default='A4',
+    )
+
+    page_overlap: IntProperty(
+        name="PDF Pages overlap",
+        default=50,
+        min=0,
+        subtype="PIXEL"
     )
 
     @classmethod
@@ -79,13 +104,115 @@ class Export_Sewingpattern(bpy.types.Operator):
         if (self.alignment_markers == 'AUTO'):
             self.auto_detect_markers()
 
-        self.export(filepath)
+        try:
+            working_directory = tempfile.TemporaryDirectory() 
+            svg_ouput_filepath = join(working_directory.name, "output.svg")
+
+            self.export(svg_ouput_filepath)
+
+            if self.file_format == "SVG":
+                shutil.move(svg_ouput_filepath, filepath)
+
+            if self.file_format == "PDF":
+                pdf_output_filepath = self.convert_svg_to_pdf(svg_ouput_filepath)
+                shutil.move(pdf_output_filepath, filepath)
+
+        finally:
+            shutil.rmtree(working_directory.name)
 
         if is_editmode:
             bpy.ops.object.mode_set(mode='EDIT', toggle=False)
 
         return {'FINISHED'}
+
+    def convert_svg_to_pdf(self, svg_output_filepath, dpi = 96):
+        working_directory = dirname(svg_output_filepath)
+
+        page_width = math.ceil(page_formats[self.page_format][0] / 2.54 * dpi)
+        page_height = math.ceil(page_formats[self.page_format][1] / 2.54 * dpi)
+
+        # Convert the image to PNG and trim it
+        png_output_filepath = join(working_directory, "output.png")
+
+        self.run_convert([svg_output_filepath, "-trim", "+repage", png_output_filepath])
+
+        # Get the resulting image dimensions
+        pixel_width, pixel_height = self.run_identify(["-ping", "-format", "%w:%h", png_output_filepath]).split(':')
+
+        page_width_with_overlap = page_width - self.page_overlap
+        page_height_with_overlap = page_height - self.page_overlap
+
+        pages_horizontal_count = math.ceil(float(pixel_width) / page_width_with_overlap)
+        pages_vertical_count = math.ceil(float(pixel_height) / page_height_with_overlap)
+
+        # Resize the image with enough room on both sides
+        extended_width = (pages_horizontal_count + 1) * page_width_with_overlap
+        extended_height = (pages_vertical_count + 1) * page_height_with_overlap
+
+        self.run_convert([
+            png_output_filepath,
+            "-background", "white",
+            "-compose", "Copy",
+            "-extent", f'{extended_width}x{extended_height}',
+            png_output_filepath
+        ])
+
+        # Crop and generate all the pages
+        pages_filepaths = []
+        for page_y in range(0, pages_vertical_count):
+            for page_x in range(0, pages_horizontal_count):
+                page_filepath = join(working_directory, f'page_{page_x + 1}_{page_y + 1}.png')
+
+                x = page_x * page_width_with_overlap
+                y = page_y * page_height_with_overlap
+
+                # Crop the right part of the image, with the right overlap
+                self.run_convert([
+                    png_output_filepath,
+                    "-crop", f'{page_width}x{page_height}+{x}+{y}',
+                    "+repage",
+                    page_filepath
+                ])
+
+                # Skip the page if it's all white, to save on paper
+                if self.run_identify(["-format", "%[fx:100*mean]", page_filepath]) == "100":
+                    continue
+
+                # Add caption to the image to make them easier to sort
+                self.run_convert([
+                    page_filepath,
+                    "-size", "140x",
+                    "-pointsize", "18",
+                    "-background", "black",
+                    "-fill", "white",
+                    f"caption: {page_x + 1} / {pages_horizontal_count} X {page_y + 1} / {pages_vertical_count}",
+                    "-gravity", "center",
+                    "-composite",
+                    page_filepath
+                ])
+
+                pages_filepaths.append(page_filepath)
+
+        pdf_output_filepath = join(working_directory, "output.pdf")
+
+        self.run_convert(pages_filepaths + [ "-quality", "100", "-page", self.page_format, pdf_output_filepath ])
+
+        return pdf_output_filepath
     
+    def run_convert(self, args):
+        print(args)
+
+        completed = subprocess.run(["convert"] + args)
+        print(completed)
+
+    def run_identify(self, args):
+        print(args)
+
+        completed = subprocess.run(["identify"] + args, stdout=subprocess.PIPE)
+        print(completed)
+
+        return completed.stdout.decode("ascii")
+
     def export(self, filepath):
         #get loops:
         bpy.ops.object.mode_set(mode='EDIT')
@@ -198,7 +325,7 @@ class Export_Sewingpattern(bpy.types.Operator):
         
         with open(filepath, "w") as file:
             file.write(svgstring)
-            
+
         bpy.ops.object.mode_set(mode='OBJECT')
         
     def add_alignment_marker(self, loop, wire, uv_layer, document_scale, marker_indexes):
@@ -214,8 +341,8 @@ class Export_Sewingpattern(bpy.types.Operator):
         wire_dir.normalize()
         #wire_dir.y *= -1;
         wire_dir.xy = wire_dir.yx
-        wire_dir *= 0.005;
-        
+        wire_dir *= -0.005 
+
         sew_color = mathutils.Color((1,0,0))
         color_hash = (hash(wire))
         color_hash /= 100000000.0
@@ -257,7 +384,7 @@ class Export_Sewingpattern(bpy.types.Operator):
         returnstring += '" y="'
         returnstring += str((uv1.y + wire_dir.y) * document_scale)
         returnstring += '" class="sewinguidetext" ' + anchor + ' ' + baseline
-        returnstring += ' font-size="' + str(int(0.01 * document_scale))+ 'px">'
+        returnstring += ' font-size="' + str(int(0.008 * document_scale))+ 'px">'
         returnstring += str(wire_index)
         returnstring += '</text>\n'
         

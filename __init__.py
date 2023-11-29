@@ -45,7 +45,7 @@ class VIEW3D_MT_object_seams_to_sewing_pattern_menu(Menu):
         layout = self.layout
         layout.operator("object.seams_to_sewingpattern", text="Seams to Sewing Pattern", icon="OUTLINER_DATA_SURFACE")
         layout.separator()
-        layout.operator("object.export_sewingpattern", text="Export Sewing Pattern (.svg)", icon="EXPORT")
+        layout.operator("object.export_sewingpattern", text="Export Sewing Pattern (.svg or .pdf)", icon="EXPORT")
         layout.separator()
         layout.operator("object.quick_clothsim", text="Quick Clothsim", icon="MOD_CLOTH")
 
