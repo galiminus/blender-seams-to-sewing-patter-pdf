@@ -12,6 +12,7 @@ import bmesh
 import mathutils
 import tempfile
 import math
+import xml.etree.ElementTree as ET
 
 page_formats = {
     "Letter": (22.0, 28.0),
@@ -131,67 +132,95 @@ class Export_Sewingpattern(bpy.types.Operator):
         page_width = math.ceil(page_formats[self.page_format][0] / 2.54 * dpi)
         page_height = math.ceil(page_formats[self.page_format][1] / 2.54 * dpi)
 
-        # Convert the image to PNG and trim it
-        png_output_filepath = join(working_directory, "output.png")
+        # We split the SVG files into several parts, it will make things a lot easier
+        # when we have to stich all the pages together
+        svgs_filepaths = []
 
-        self.run_convert([svg_output_filepath, "-trim", "+repage", png_output_filepath])
+        tree = ET.parse(svg_output_filepath)
+        root = tree.getroot()
 
-        # Get the resulting image dimensions
-        pixel_width, pixel_height = self.run_identify(["-ping", "-format", "%w:%h", png_output_filepath]).split(':')
+        groups = root.findall('svg:g', { 'svg': "http://www.w3.org/2000/svg" })
+        # Remove all groups
+        for group in groups:
+            root.remove(group)
 
-        page_width_with_overlap = page_width - self.page_overlap
-        page_height_with_overlap = page_height - self.page_overlap
+        for index, group in enumerate(groups):
+            svg_filepath = join(working_directory, f'group_{index + 1}.svg')
 
-        pages_horizontal_count = math.ceil(float(pixel_width) / page_width_with_overlap)
-        pages_vertical_count = math.ceil(float(pixel_height) / page_height_with_overlap)
+            root.append(group)
+            tree.write(svg_filepath)
+            root.remove(group)
 
-        # Resize the image with enough room on both sides
-        extended_width = (pages_horizontal_count + 1) * page_width_with_overlap
-        extended_height = (pages_vertical_count + 1) * page_height_with_overlap
+            svgs_filepaths.append(svg_filepath)
 
-        self.run_convert([
-            png_output_filepath,
-            "-background", "white",
-            "-compose", "Copy",
-            "-extent", f'{extended_width}x{extended_height}',
-            png_output_filepath
-        ])
-
-        # Crop and generate all the pages
         pages_filepaths = []
-        for page_y in range(0, pages_vertical_count):
-            for page_x in range(0, pages_horizontal_count):
-                page_filepath = join(working_directory, f'page_{page_x + 1}_{page_y + 1}.png')
 
-                x = page_x * page_width_with_overlap
-                y = page_y * page_height_with_overlap
+        for svg_index, svg_filepath in enumerate(svgs_filepaths):
+            # Convert the image to PNG, trim it and add a small border
+            png_output_filepath = join(working_directory, f"group_{svg_index + 1}.png")
 
-                # Crop the right part of the image, with the right overlap
-                self.run_convert([
-                    png_output_filepath,
-                    "-crop", f'{page_width}x{page_height}+{x}+{y}',
-                    "+repage",
-                    page_filepath
-                ])
+            self.run_convert([
+                svg_filepath,
+                "-trim", "+repage",
+                "-bordercolor", "white",
+                "-border", f"50x50",
+                png_output_filepath
+            ])
 
-                # Skip the page if it's all white, to save on paper
-                if self.run_identify(["-format", "%[fx:100*mean]", page_filepath]) == "100":
-                    continue
+            # Get the resulting image dimensions
+            pixel_width, pixel_height = self.run_identify(["-ping", "-format", "%w:%h", png_output_filepath]).split(':')
 
-                # Add caption to the image to make them easier to sort
-                self.run_convert([
-                    page_filepath,
-                    "-size", "140x",
-                    "-pointsize", "18",
-                    "-background", "black",
-                    "-fill", "white",
-                    f"caption: {page_x + 1} / {pages_horizontal_count} X {page_y + 1} / {pages_vertical_count}",
-                    "-gravity", "center",
-                    "-composite",
-                    page_filepath
-                ])
+            page_width_with_overlap = page_width - self.page_overlap
+            page_height_with_overlap = page_height - self.page_overlap
 
-                pages_filepaths.append(page_filepath)
+            pages_horizontal_count = math.ceil(float(pixel_width) / page_width_with_overlap)
+            pages_vertical_count = math.ceil(float(pixel_height) / page_height_with_overlap)
+
+            # Resize the image with enough room on both sides
+            extended_width = (pages_horizontal_count + 1) * page_width_with_overlap
+            extended_height = (pages_vertical_count + 1) * page_height_with_overlap
+
+            self.run_convert([
+                png_output_filepath,
+                "-background", "white",
+                "-compose", "Copy",
+                "-extent", f'{extended_width}x{extended_height}',
+                png_output_filepath
+            ])
+
+            # Crop and generate all the pages
+            for page_y in range(0, pages_vertical_count):
+                for page_x in range(0, pages_horizontal_count):
+                    page_filepath = join(working_directory, f'page_{svg_index + 1}_{page_x + 1}_{page_y + 1}.png')
+
+                    x = page_x * page_width_with_overlap
+                    y = page_y * page_height_with_overlap
+
+                    # Crop the right part of the image, with the right overlap
+                    self.run_convert([
+                        png_output_filepath,
+                        "-crop", f'{page_width}x{page_height}+{x}+{y}',
+                        "+repage",
+                        page_filepath
+                    ])
+
+                    # Skip the page if it's all white, to save on paper
+                    if self.run_identify(["-format", "%[fx:100*mean]", page_filepath]) == "100":
+                        continue
+
+                    # Add caption to the image to make them easier to sort
+                    self.run_convert([
+                        page_filepath,
+                        "-size", "140x",
+                        "-pointsize", "18",
+                        "-fill", "black",
+                        f"caption: {svg_index + 1} - {page_x + 1} X {page_y + 1}",
+                        "-gravity", "center",
+                        "-composite",
+                        page_filepath
+                    ])
+
+                    pages_filepaths.append(page_filepath)
 
         pdf_output_filepath = join(working_directory, "output.pdf")
 
