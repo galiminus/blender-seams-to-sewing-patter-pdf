@@ -208,6 +208,15 @@ class Export_Sewingpattern(bpy.types.Operator):
                     if self.run_identify(["-format", "%[fx:100*mean]", page_filepath]) == "100":
                         continue
 
+                    # Add overlap marker
+                    self.run_convert([
+                        page_filepath,
+                        "-stroke", "black",
+                        "-draw", f"line {page_width_with_overlap},0 {page_width_with_overlap},{page_height_with_overlap}",
+                        "-draw", f"line 0,{page_height_with_overlap} {page_width_with_overlap},{page_height_with_overlap}",
+                        page_filepath
+                    ])
+
                     # Add caption to the image to make them easier to sort
                     self.run_convert([
                         page_filepath,
